@@ -7,8 +7,9 @@ without copying or merging anything.
 
 ## Status
 
-This project is currently in the design and scaffolding stage. The product
-direction is defined in [docs/wsx-design-plan.md](docs/wsx-design-plan.md).
+This project is in early implementation. The shared workspace layer, Windows
+link handling, and `wsx init` are in place. The product direction remains
+defined in [docs/wsx-design-plan.md](docs/wsx-design-plan.md).
 
 ## Core Idea
 
@@ -66,9 +67,9 @@ More detailed structure and implementation phases are documented in
 
 ## Next Implementation Target
 
-Phase 1 from the design plan:
+Parallel Track A from the implementation plan:
 
-- add `wsx init`
+- add `wsx add`
 
 ## Development
 

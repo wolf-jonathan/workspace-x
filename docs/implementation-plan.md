@@ -213,6 +213,33 @@ This command should stay thin and rely on the workspace layer created earlier.
 
 - Phase 0 complete
 
+**Progress update (2026-04-12):**
+
+- Added `cmd/init.go` and wired `init` into the root Cobra command.
+- Added black-box tests in `cmd/init_test.go` for:
+  - explicit workspace name
+  - defaulting the workspace name to the current directory
+  - creating `.wsx.json` with an empty refs list
+  - creating an empty `.wsx.env`
+  - appending `.wsx.env` to `.gitignore`
+  - failing cleanly when `.wsx.json` already exists
+- Kept command behavior thin:
+  - config creation still flows through `internal/workspace.SaveConfig`
+  - `.gitignore` mutation is limited to ensuring the `.wsx.env` entry exists once
+  - no path resolution or repo-link behavior was added in this slice
+
+**Frozen contracts after this slice:**
+
+- `wsx init [name]` initializes the current directory only.
+- When `name` is omitted, the workspace name defaults to the current directory basename.
+- `wsx init` creates `.wsx.json`, creates an empty `.wsx.env`, and ensures `.wsx.env` is present in `.gitignore`.
+- `wsx init` fails without mutating the workspace when `.wsx.json` already exists.
+
+**Verification status:**
+
+- `go test ./cmd`
+- `go test ./...`
+
 ## Parallel Track A - Core Workspace Commands
 
 These tasks can run in parallel if they do not modify shared workspace helpers.
