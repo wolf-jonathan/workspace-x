@@ -1,0 +1,23 @@
+# Build outputs
+bin/
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Go artifacts
+coverage.out
+*.coverprofile
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local environment files
+.env
+.env.*
