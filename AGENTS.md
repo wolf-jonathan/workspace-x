@@ -75,6 +75,7 @@ wsx/
 
 - After implementing a feature, explain how to run it locally.
 - After implementing a feature, explain how to run the relevant tests locally.
+- After each implementation, update the CLI help output so `--help` reflects everything currently supported.
 - If the implementation and tests pass, update progress notes for handoff to future AI agents in the appropriate project docs.
 
 ## Working Style
