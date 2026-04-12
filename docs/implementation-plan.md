@@ -552,6 +552,43 @@ into separate owned modules.
 - `internal/ai/ignore.go`
 - `internal/ai/ignore_test.go`
 
+**TDD scope:**
+
+- built-in default excludes
+- global git ignore loading
+- repo and nested `.gitignore` loading
+- nested precedence and branch scoping
+
+**Progress update (2026-04-12):**
+
+- Added `internal/ai/ignore.go` with the initial ignore seam:
+  - `IgnoreMatcher`
+  - `LoadIgnoreMatcher(repoRoot string) (*IgnoreMatcher, error)`
+  - `(*IgnoreMatcher) MatchesPath(path string) bool`
+- Added `github.com/sabhiram/go-gitignore` as the planned parser dependency.
+- Implemented the initial ignore chain loader for AI-facing commands:
+  - loads the global git ignore from `~/.config/git/ignore` or `~/.gitignore_global` when present
+  - walks the repo for `.gitignore` files outside `.git/`
+  - rewrites nested `.gitignore` patterns into one repo-relative precedence chain
+  - keeps built-in noise excludes enforced separately so later commands cannot accidentally surface `.git/`, `.DS_Store`, `Thumbs.db`, `*.pyc`, `__pycache__/`, or `*.class`
+- Added black-box tests in `internal/ai/ignore_test.go` for:
+  - repo root ignore rules
+  - nested `.gitignore` negation overriding an earlier parent ignore
+  - global ignore file loading from the user home directory
+  - nested ignore scoping applying only within the matching repo branch
+
+**Frozen contracts after this slice:**
+
+- `internal/ai` now owns gitignore-chain loading for later AI-facing commands instead of duplicating ignore handling inside `tree`, `grep`, or `dump`.
+- `LoadIgnoreMatcher` resolves the repo root once and returns a matcher that accepts repo-relative or absolute paths under that root.
+- Built-in AI noise excludes are always enforced by the matcher and are not dependent on repository ignore files.
+- Nested `.gitignore` files participate in a single ordered precedence chain so deeper rules can override broader parent rules within their branch.
+
+**Verification status:**
+
+- `go test ./internal/ai`
+- `go test ./...`
+
 ### Task C1 - Framework Detection
 
 **Owner:** Agent 12

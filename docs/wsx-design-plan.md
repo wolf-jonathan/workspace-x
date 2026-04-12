@@ -814,8 +814,8 @@ This phase is expanded because Windows support is a first-class requirement from
 **Goal:** `tree`, `grep`, `dump`, `prompt`, `claude-init`, `skill-install`, `skill-uninstall`.
 
 - [ ] Implement `internal/ai/detect.go` - language/framework detection per repo
-- [ ] Add `github.com/sabhiram/go-gitignore` dependency
-- [ ] Implement `internal/ai/ignore.go` - gitignore chain loader (global + repo + nested)
+- [x] Add `github.com/sabhiram/go-gitignore` dependency
+- [x] Implement `internal/ai/ignore.go` - gitignore chain loader (global + repo + nested)
 - [ ] Implement `wsx tree` - respects gitignore by default, `--all` to bypass
 - [ ] Implement `wsx grep` - cross-repo search with `--include`, `--exclude`, `--context`, `--json`
 - [ ] Implement `wsx dump` - mandatory filter, gitignore support, all flags
