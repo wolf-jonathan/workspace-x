@@ -21,7 +21,7 @@ func TestInitCreatesWorkspaceFiles(t *testing.T) {
 	command.SetOut(new(bytes.Buffer))
 	command.SetErr(new(bytes.Buffer))
 
-	if err := command.Execute(); err != nil {
+	if err := cmd.ExecuteCommand(command); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestInitDefaultsNameAndAppendsGitignoreOnce(t *testing.T) {
 	command.SetOut(new(bytes.Buffer))
 	command.SetErr(new(bytes.Buffer))
 
-	if err := command.Execute(); err != nil {
+	if err := cmd.ExecuteCommand(command); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
 
@@ -132,13 +132,20 @@ func TestInitFailsWhenWorkspaceAlreadyInitialized(t *testing.T) {
 	command.SetOut(new(bytes.Buffer))
 	command.SetErr(new(bytes.Buffer))
 
-	err := command.Execute()
+	stdout := new(bytes.Buffer)
+	command.SetOut(stdout)
+
+	err := cmd.ExecuteCommand(command)
 	if err == nil {
 		t.Fatal("Execute() error = nil, want already-initialized error")
 	}
 
 	if !strings.Contains(err.Error(), workspace.ConfigFileName) {
 		t.Fatalf("error = %q, want mention of %s", err.Error(), workspace.ConfigFileName)
+	}
+
+	if strings.Contains(stdout.String(), "Usage:") {
+		t.Fatalf("stdout = %q, want no help output for runtime error", stdout.String())
 	}
 
 	loaded, loadErr := workspace.LoadConfig(root)

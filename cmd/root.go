@@ -1,6 +1,10 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"strings"
+
+	"github.com/spf13/cobra"
+)
 
 func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
@@ -23,5 +27,47 @@ Only implemented commands are shown below.`,
 }
 
 func Execute() error {
-	return NewRootCommand().Execute()
+	return ExecuteCommand(NewRootCommand())
+}
+
+func ExecuteCommand(command *cobra.Command) error {
+	executedCommand, err := command.ExecuteC()
+	if err == nil {
+		return nil
+	}
+
+	if shouldShowHelp(err) {
+		helpCommand := executedCommand
+		if helpCommand == nil {
+			helpCommand = command
+		}
+		if err := helpCommand.Help(); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func shouldShowHelp(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	message := err.Error()
+	for _, fragment := range []string{
+		"unknown command",
+		"unknown flag",
+		"accepts ",
+		"requires at most",
+		"requires at least",
+		"requires exactly",
+		"argument",
+	} {
+		if strings.Contains(message, fragment) {
+			return true
+		}
+	}
+
+	return false
 }
