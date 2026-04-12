@@ -30,6 +30,7 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 		"list",
 		"remove",
 		"status",
+		"tree",
 		"Only implemented commands are shown below.",
 	} {
 		if !strings.Contains(output, snippet) {

@@ -649,6 +649,41 @@ into separate owned modules.
 
 - ignore handling
 
+**TDD scope:**
+
+- clean workspace tree output
+- default ignore-aware traversal
+- `--all` bypass for ignored and default-noise paths
+- `--depth` limiting per-repo traversal
+
+**Progress update (2026-04-12):**
+
+- Added `internal/ai/tree.go` with the initial tree-rendering seam:
+  - `TreeRepo`
+  - `TreeOptions`
+  - `RenderWorkspaceTree(workspaceName string, repos []TreeRepo, options TreeOptions) (string, error)`
+- Added `cmd/tree.go` and wired `tree` into the root Cobra command and help text.
+- Implemented clean tree rendering for workspace refs:
+  - preserves workspace config order for top-level repo entries
+  - sorts child entries with directories before files
+  - uses the shared ignore matcher by default
+  - applies tree-specific noise exclusion for `node_modules`, `dist`, and `vendor` unless `--all` is set
+- Added black-box tests in:
+  - `internal/ai/tree_test.go` for ignore handling, `--all` behavior, and depth limiting
+  - `cmd/tree_test.go` for end-to-end workspace output and command flag behavior
+
+**Frozen contracts after this slice:**
+
+- `internal/ai.RenderWorkspaceTree` owns tree formatting for later AI-facing prompt and inspection work instead of duplicating traversal logic inside commands.
+- `wsx tree` is plain-text only in this slice and renders the workspace root followed by linked repos in workspace config order.
+- `wsx tree --depth N` limits traversal depth within each linked repo; `0` means unlimited.
+- `wsx tree --all` bypasses ignore-based filtering and tree-specific default noise excludes.
+
+**Verification status:**
+
+- `go test ./internal/ai ./cmd`
+- `go test ./...`
+
 ### Task C3 - `grep`
 
 **Owner:** Agent 14

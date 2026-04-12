@@ -20,6 +20,7 @@ Currently supported commands:
   list    List linked repositories in the current workspace
   remove  Remove a linked repository from the current workspace
   status  Run git status across linked repositories
+  tree    Show a clean directory tree for the current workspace
 
 Only implemented commands are shown below.`,
 		SilenceUsage:  true,
@@ -34,6 +35,7 @@ Only implemented commands are shown below.`,
 	root.AddCommand(newListCommand())
 	root.AddCommand(newRemoveCommand())
 	root.AddCommand(newStatusCommand())
+	root.AddCommand(newTreeCommand())
 
 	return root
 }
