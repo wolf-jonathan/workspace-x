@@ -312,6 +312,30 @@ These tasks can run in parallel if they do not modify shared workspace helpers.
 - remove link only
 - leave target repo untouched
 
+**Progress update (2026-04-12):**
+
+- Added `cmd/remove.go` and wired `remove` into the root Cobra command and help text.
+- Added black-box tests in `cmd/remove_test.go` for:
+  - deleting the matching config entry
+  - removing the workspace link itself
+  - leaving the target repository directory untouched
+  - rejecting unknown refs without mutating config
+- Kept command behavior thin:
+  - config loading and saving continue to flow through `internal/workspace`
+  - link deletion continues to flow through `workspace.RemoveLink`
+  - target repository contents remain outside the command's write scope
+
+**Frozen contracts after this slice:**
+
+- `wsx remove <name>` removes the named ref from `.wsx.json`.
+- `wsx remove` removes only the workspace link and must not delete or mutate the target repository.
+- `wsx remove` must fail cleanly when the named ref does not exist.
+
+**Verification status:**
+
+- `go test ./cmd`
+- `go test ./...`
+
 ### Task A3 - `list`
 
 **Owner:** Agent 6
