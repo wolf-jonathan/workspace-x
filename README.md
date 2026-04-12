@@ -9,7 +9,7 @@ without copying or merging anything.
 
 This project is in early implementation. The shared workspace layer, Windows
 link handling, `wsx init`, `wsx add`, `wsx remove`, `wsx list`, and
-`wsx status` are in place.
+`wsx status`, `wsx fetch`, and `wsx exec` are in place.
 The product direction remains defined in
 [docs/wsx-design-plan.md](docs/wsx-design-plan.md).
 
@@ -69,9 +69,9 @@ More detailed structure and implementation phases are documented in
 
 ## Next Implementation Target
 
-Parallel Track B from the implementation plan:
+Parallel Track C from the implementation plan:
 
-- add `wsx exec`
+- add ignore handling and framework detection
 
 ## Development
 

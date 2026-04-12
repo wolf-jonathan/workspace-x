@@ -806,7 +806,7 @@ This phase is expanded because Windows support is a first-class requirement from
 - [x] Implement `internal/git/git.go` with `Status(path)` and `Fetch(path)` using `os/exec`
 - [x] Implement `wsx status` with `--json`
 - [x] Implement `wsx fetch` with `--parallel`
-- [ ] Implement `wsx exec -- <cmd>` with `--parallel` and `--json`
+- [x] Implement `wsx exec -- <cmd>` with `--parallel` and `--json`
 
 ---
 
