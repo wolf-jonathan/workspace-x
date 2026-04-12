@@ -443,6 +443,36 @@ commands.
 - Git runner layer
 - Phase 0
 
+**TDD scope:**
+
+- text output grouped by repo
+- `--json`
+- non-zero exit when any repo is dirty
+
+**Progress update (2026-04-12):**
+
+- Added `cmd/status.go` and wired `status` into the root Cobra command and help text.
+- Added command-level black-box tests in `cmd/status_test.go` for:
+  - grouped text output with clean, dirty, and git-error summaries
+  - `--json` output including `name`, stored `path`, `resolved_path`, `summary`, `clean`, `error`, and `exit_code`
+  - non-zero command failure when any repo is dirty or unavailable
+- Kept command behavior thin:
+  - config loading continues to flow through `internal/workspace`
+  - placeholder resolution continues to flow through `workspace.ResolvePath`
+  - git execution continues to flow through `internal/git`
+
+**Frozen contracts after this slice:**
+
+- `wsx status` runs `git status --short --branch` against each resolved repo path in workspace config order.
+- `wsx status` prints one summary line per repo in plain text and supports `--json` for machine-readable output.
+- `wsx status --json` emits one object per ref with `name`, `path`, `resolved_path`, `summary`, `clean`, `error`, and `exit_code`.
+- `wsx status` must exit non-zero when any repo is dirty or when git status cannot be collected for a repo.
+
+**Verification status:**
+
+- `go test ./cmd`
+- `go test ./...`
+
 ### Task B2 - `fetch`
 
 **Owner:** Agent 9

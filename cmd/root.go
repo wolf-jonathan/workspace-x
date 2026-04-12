@@ -17,6 +17,7 @@ Currently supported commands:
   init    Initialize a workspace in the current directory
   list    List linked repositories in the current workspace
   remove  Remove a linked repository from the current workspace
+  status  Run git status across linked repositories
 
 Only implemented commands are shown below.`,
 		SilenceUsage:  true,
@@ -28,6 +29,7 @@ Only implemented commands are shown below.`,
 	root.AddCommand(newInitCommand())
 	root.AddCommand(newListCommand())
 	root.AddCommand(newRemoveCommand())
+	root.AddCommand(newStatusCommand())
 
 	return root
 }
