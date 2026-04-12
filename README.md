@@ -8,7 +8,7 @@ without copying or merging anything.
 ## Status
 
 This project is in early implementation. The shared workspace layer, Windows
-link handling, and `wsx init` are in place. The product direction remains
+link handling, `wsx init`, and `wsx add` are in place. The product direction remains
 defined in [docs/wsx-design-plan.md](docs/wsx-design-plan.md).
 
 ## Core Idea
@@ -69,7 +69,7 @@ More detailed structure and implementation phases are documented in
 
 Parallel Track A from the implementation plan:
 
-- add `wsx add`
+- add `wsx remove`
 
 ## Development
 

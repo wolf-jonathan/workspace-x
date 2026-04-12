@@ -266,6 +266,32 @@ These tasks can run in parallel if they do not modify shared workspace helpers.
 - circular reference checks
 - config update and link creation
 
+**Progress update (2026-04-12):**
+
+- Added `cmd/add.go` and wired `add` into the root Cobra command and help text.
+- Added black-box tests in `cmd/add_test.go` for:
+  - resolving plain absolute paths and storing a parameterized `${VAR}` form when `.wsx.env` provides a matching prefix
+  - accepting parameterized input paths directly
+  - honoring `--as` for the workspace link name
+  - rejecting name conflicts without mutating config
+  - rejecting circular references to the workspace without mutating config
+- Kept command behavior thin:
+  - config loading and saving continue to flow through `internal/workspace`
+  - path variable expansion continues to flow through `workspace.ResolvePath`
+  - link creation continues to flow through `workspace.CreateLink`
+
+**Frozen contracts after this slice:**
+
+- `wsx add <path> [--as <name>]` resolves the target path at point of use and stores the unresolved placeholder form in `.wsx.json` when the input is parameterized or when a `.wsx.env` prefix match is available.
+- `wsx add` derives the default ref name from the target directory basename unless `--as` is provided.
+- `wsx add` must reject refs that would point at the workspace root, a path inside the workspace, or a parent directory containing the workspace.
+- `wsx add` must reject conflicting ref names before creating any link or mutating `.wsx.json`.
+
+**Verification status:**
+
+- `go test ./cmd`
+- `go test ./...`
+
 ### Task A2 - `remove`
 
 **Owner:** Agent 5

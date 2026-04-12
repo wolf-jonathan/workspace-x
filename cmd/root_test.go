@@ -23,6 +23,7 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 	output := stdout.String()
 	for _, snippet := range []string{
 		"Currently supported commands:",
+		"add",
 		"init",
 		"Only implemented commands are shown below.",
 	} {
