@@ -18,6 +18,7 @@ repositories into one workspace directory.
 - `link_type` is runtime state and must not be stored in `.wsx.json`.
 - `wsx exec` must forward argv directly to process execution. Shell behavior is opt-in and explicit.
 - Commands intended for AI agents should emit clean plain text and support `--json` where structured output is useful.
+- Ship and maintain a first-party top-level `SKILL.md` so agent platforms can install `wsx` guidance globally or locally.
 - Do not emit ANSI color when stdout is not a TTY.
 
 ## Engineering Priorities
@@ -62,6 +63,7 @@ wsx/
 - `wsx doctor` must distinguish interactive TTY behavior from non-interactive agent or CI behavior.
 - `wsx fetch` is the safe built-in multi-repo sync primitive. Do not replace it with implicit pull behavior.
 - `wsx dump` must require a narrowing filter unless the caller explicitly opts into dumping everything.
+- The top-level `SKILL.md` must stay aligned with the CLI behavior and the design doc invariants.
 
 ## Docs Expectations
 

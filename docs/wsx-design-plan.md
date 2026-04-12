@@ -15,6 +15,7 @@
 
 - **Zero lock-in** - the workspace is just a folder with symlinks. If you delete `wsx`, everything still works.
 - **AI-first CLI output** - every command outputs clean, parseable text. No spinners or color when piped. AI agents can call `wsx` commands directly.
+- **Agent-native distribution** - ship a top-level `SKILL.md` so agents like Claude, Codex, and Copilot can install `wsx` guidance globally or locally, not just invoke the binary.
 - **Local and portable** - the committed config uses variable placeholders for paths. Each user defines what those variables mean on their machine in a local `.wsx.env` file that is never committed.
 - **Cross-platform, Windows first** - designed to work on Windows from day one, with automatic fallback to directory junctions when symlinks require elevated permissions.
 
@@ -579,6 +580,58 @@ Claude Code reads `CLAUDE.md` on every session, so this keeps the AI consistentl
 
 ---
 
+#### `wsx skill-install`
+Installs the bundled top-level `SKILL.md` for agent use.
+
+```bash
+wsx skill-install
+wsx skill-install --scope local
+wsx skill-install --scope global
+```
+
+Installs the repo's bundled `SKILL.md` into the selected agent skill location.
+The installed skill teaches an AI agent:
+
+- what `wsx` is for
+- the workspace invariants it must preserve
+- the safest command sequence to use first, especially `wsx doctor --json`
+- how to reason about linked repos, `.wsx.json`, `.wsx.env`, and Windows junction fallback
+- how to avoid unsafe assumptions such as rewriting stored placeholder paths
+
+**Distribution goal:**
+
+`wsx` should ship with a first-party top-level `SKILL.md` in the repo and expose
+an install flow so users can place it either:
+
+- **globally** in their agent skills directory, for reuse across many sessions
+- **locally** in the current repo or workspace, when they want project-scoped behavior
+
+Target agents include Claude, Codex, Copilot, and any other agent ecosystem that
+can consume a plain Markdown `SKILL.md`.
+
+**Design constraints:**
+
+- The bundled skill must be a plain top-level `SKILL.md`, not a generated bundle with extra metadata.
+- The bundled skill must be concise and procedural, not a duplicate of the full README.
+- The skill must encode the core invariants from this design doc.
+- The install flow should support only scope selection, not arbitrary output paths.
+- The installed skill should remain useful even when the CLI binary is not yet on `PATH`, by explaining how to locate or invoke `wsx`.
+
+---
+
+#### `wsx skill-uninstall`
+Removes the installed `wsx` skill from the selected scope.
+
+```bash
+wsx skill-uninstall
+wsx skill-uninstall --scope local
+wsx skill-uninstall --scope global
+```
+
+Removes the installed skill copy without touching the repo's source `SKILL.md`.
+
+---
+
 ## 6. Global Reference Registry (Optional, Phase 2)
 
 A global registry at `~/.config/wsx/registry.json` stores named paths you use frequently:
@@ -604,6 +657,7 @@ wsx/
 ├── go.mod
 ├── go.sum
 ├── CLAUDE.md                  ← describes the project for Claude Code sessions
+├── SKILL.md                   ← bundled agent skill shipped at repo root
 ├── cmd/
 │   ├── root.go                ← cobra root, global flags
 │   ├── init.go
@@ -631,6 +685,7 @@ wsx/
         ├── grep.go            ← cross-repo search
         ├── prompt.go          ← prompt generation
         ├── claude.go          ← CLAUDE.md generation
+        ├── skill.go           ← skill install and uninstall logic
         ├── detect.go          ← language/framework detection
         └── ignore.go          ← gitignore chain loader (global + repo + nested)
 ```
@@ -710,6 +765,7 @@ This phase is expanded because Windows support is a first-class requirement from
 - [ ] Implement `internal/workspace/symlink.go` - try symlink, auto-fallback to directory junction on Windows permission failure, return which method was used (caller reports at runtime, not persisted to config)
 - [ ] Implement `wsx init` - creates `.wsx.json`, `.wsx.env`, adds `.wsx.env` to `.gitignore`
 - [ ] Write `CLAUDE.md` for the project itself
+- [ ] Add a first-party top-level `SKILL.md` describing how AI agents should use `wsx`
 
 **Prompt to use:**
 > "Set up a Go CLI called `wsx` using cobra. Create `internal/workspace/env.go` that loads a `.wsx.env` file (KEY=VALUE format) and resolves `${VAR}` placeholders in strings. Create `internal/workspace/workspace.go` with a Config struct matching this schema: [paste schema]. Implement `LoadConfig()` that walks up from cwd to find `.wsx.json` and returns the raw config with `${VAR}` placeholders untouched. Implement `ResolvePath(path string) (string, error)` in `env.go` that resolves a single path string against `.wsx.env` at point of use. Implement `SaveConfig()`. Create `internal/workspace/symlink.go` that creates a symlink on Mac/Linux, and on Windows tries symlink first then falls back to a directory junction silently if permissions fail. Then implement `cmd/init.go`."
@@ -755,7 +811,7 @@ This phase is expanded because Windows support is a first-class requirement from
 ---
 
 ### Phase 5 - AI Commands
-**Goal:** `tree`, `grep`, `dump`, `prompt`, `claude-init`.
+**Goal:** `tree`, `grep`, `dump`, `prompt`, `claude-init`, `skill-install`, `skill-uninstall`.
 
 - [ ] Implement `internal/ai/detect.go` - language/framework detection per repo
 - [ ] Add `github.com/sabhiram/go-gitignore` dependency
@@ -765,6 +821,8 @@ This phase is expanded because Windows support is a first-class requirement from
 - [ ] Implement `wsx dump` - mandatory filter, gitignore support, all flags
 - [ ] Implement `wsx prompt`
 - [ ] Implement `wsx claude-init`
+- [ ] Implement `wsx skill-install` to install the bundled top-level `SKILL.md` locally or globally
+- [ ] Implement `wsx skill-uninstall` to remove the installed skill from local or global scope
 
 ---
 
@@ -777,6 +835,7 @@ This phase is expanded because Windows support is a first-class requirement from
 - [ ] Add to Homebrew (create a tap: `homebrew-wsx`)
 - [ ] Publish to pkg.go.dev
 - [ ] Add install script: `curl -fsSL https://get.wsx-cli.dev | sh` (Mac/Linux) and PowerShell equivalent for Windows
+- [ ] Document how to install and uninstall the bundled `wsx` skill globally or locally for Claude, Codex, Copilot, and compatible agents
 
 ---
 
@@ -829,3 +888,4 @@ repos into it. Lets AI tools operate across multiple repos without merging them.
 | `wsx dump` default | Requires a filter flag | Full repo dumps destroy AI context; targeted extraction is always more useful |
 | `wsx sync` → removed | Replaced by `wsx fetch` + `wsx exec` | `pull` across repos is dangerous; `exec` is more powerful and explicit |
 | Output | Plain text + `--json` | AI-friendly, pipeable, no color when not TTY |
+| Agent integration | Bundle a first-party top-level `SKILL.md` plus install and uninstall flow | Makes `wsx` usable as both a CLI and an agent-native capability across Claude, Codex, Copilot, and similar tools without extra metadata formats |
