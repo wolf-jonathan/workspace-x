@@ -936,6 +936,33 @@ Keep skill support late in the implementation sequence.
 Implement this after the core CLI behavior is stable, so the shipped `SKILL.md`
 describes real command behavior instead of speculation.
 
+**Progress update (2026-04-13):**
+
+- Added the bundled top-level `SKILL.md` for agent-native distribution.
+- Added the repo-level `CLAUDE.md` so Claude-oriented sessions have project guidance at the source root.
+- Added `internal/ai/skill.go` with the initial skill installation seam:
+  - `SkillInstallResult`
+  - `InstallBundledSkill(repoRoot, scope string) (SkillInstallResult, error)`
+  - `UninstallBundledSkill(repoRoot, scope string) (SkillInstallResult, error)`
+- Added `cmd/skill_install.go` and `cmd/skill_uninstall.go` and wired both commands into the root Cobra help output.
+- Added black-box tests in:
+  - `internal/ai/skill_test.go` for local install, global install, duplicate install rejection, uninstall, and missing-install behavior
+  - `cmd/skill_install_test.go` for end-to-end local install, global install, and uninstall behavior
+
+**Frozen contracts after this slice:**
+
+- `wsx skill-install` supports only `--scope local` and `--scope global`.
+- Local install writes the bundled `SKILL.md` to `.agents/skills/wsx/SKILL.md` under the current directory.
+- Global install writes the bundled `SKILL.md` to `.agents/skills/wsx/SKILL.md` under the current user home directory.
+- `wsx skill-uninstall` removes only the installed `wsx` skill directory for the selected scope and never mutates the source `SKILL.md`.
+
+**Verification status:**
+
+- Pending local verification in this Codex environment because `go` is not available on `PATH`:
+  - `go test ./internal/ai`
+  - `go test ./cmd`
+  - `go test ./...`
+
 ## Best Rollout Order
 
 1. Foundation and seams

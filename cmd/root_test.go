@@ -34,6 +34,8 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 		"list",
 		"prompt",
 		"remove",
+		"skill-install",
+		"skill-uninstall",
 		"status",
 		"tree",
 		"Only implemented commands are shown below.",

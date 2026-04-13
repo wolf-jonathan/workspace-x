@@ -771,8 +771,8 @@ This phase is expanded because Windows support is a first-class requirement from
 - [x] Implement `SaveConfig()`
 - [x] Implement `internal/workspace/symlink.go` - try symlink, auto-fallback to directory junction on Windows permission failure, return which method was used (caller reports at runtime, not persisted to config)
 - [x] Implement `wsx init` - creates `.wsx.json`, `.wsx.env`, adds `.wsx.env` to `.gitignore`
-- [ ] Write `CLAUDE.md` for the project itself
-- [ ] Add a first-party top-level `SKILL.md` describing how AI agents should use `wsx`
+- [x] Write `CLAUDE.md` for the project itself
+- [x] Add a first-party top-level `SKILL.md` describing how AI agents should use `wsx`
 
 **Prompt to use:**
 > "Set up a Go CLI called `wsx` using cobra. Create `internal/workspace/env.go` that loads a `.wsx.env` file (KEY=VALUE format) and resolves `${VAR}` placeholders in strings. Create `internal/workspace/workspace.go` with a Config struct matching this schema: [paste schema]. Implement `LoadConfig()` that walks up from cwd to find `.wsx.json` and returns the raw config with `${VAR}` placeholders untouched. Implement `ResolvePath(path string) (string, error)` in `env.go` that resolves a single path string against `.wsx.env` at point of use. Implement `SaveConfig()`. Create `internal/workspace/symlink.go` that creates a symlink on Mac/Linux, and on Windows tries symlink first then falls back to a directory junction silently if permissions fail. Then implement `cmd/init.go`."
@@ -828,8 +828,8 @@ This phase is expanded because Windows support is a first-class requirement from
 - [x] Implement `wsx dump` - mandatory filter, gitignore support, all flags
 - [x] Implement `wsx prompt`
 - [x] Implement `wsx agent-init`
-- [ ] Implement `wsx skill-install` to install the bundled top-level `SKILL.md` locally or globally
-- [ ] Implement `wsx skill-uninstall` to remove the installed skill from local or global scope
+- [x] Implement `wsx skill-install` to install the bundled top-level `SKILL.md` locally or globally
+- [x] Implement `wsx skill-uninstall` to remove the installed skill from local or global scope
 
 ---
 

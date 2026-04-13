@@ -24,6 +24,8 @@ Currently supported commands:
   list    List linked repositories in the current workspace
   prompt  Generate an AI system prompt for the current workspace
   remove  Remove a linked repository from the current workspace
+  skill-install Install the bundled wsx SKILL.md
+  skill-uninstall Remove an installed wsx skill
   status  Run git status across linked repositories
   tree    Show a clean directory tree for the current workspace
 
@@ -44,6 +46,8 @@ Only implemented commands are shown below.`,
 	root.AddCommand(newListCommand())
 	root.AddCommand(newPromptCommand())
 	root.AddCommand(newRemoveCommand())
+	root.AddCommand(newSkillInstallCommand())
+	root.AddCommand(newSkillUninstallCommand())
 	root.AddCommand(newStatusCommand())
 	root.AddCommand(newTreeCommand())
 

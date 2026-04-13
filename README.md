@@ -7,11 +7,13 @@ without copying or merging anything.
 
 ## Status
 
-This project is in early implementation. The shared workspace layer, Windows
-link handling, `wsx init`, `wsx add`, `wsx remove`, `wsx list`, `wsx doctor`, `wsx status`,
-`wsx fetch`, `wsx exec`, `wsx tree`, `wsx grep`, `wsx dump`, `wsx prompt`, and `wsx agent-init` are in place, and the initial
-`internal/ai` gitignore and framework-detection seams are implemented for the
-next AI-facing command wave.
+This project is in active implementation. The shared workspace layer, Windows
+link handling, `wsx init`, `wsx add`, `wsx remove`, `wsx list`, `wsx doctor`,
+`wsx status`, `wsx fetch`, `wsx exec`, `wsx tree`, `wsx grep`, `wsx dump`,
+`wsx prompt`, `wsx agent-init`, `wsx skill-install`, and
+`wsx skill-uninstall` are in place. The repo now also ships first-party
+top-level `CLAUDE.md` and `SKILL.md` guidance aligned to the design doc and
+current CLI behavior.
 The product direction remains defined in
 [docs/wsx-design-plan.md](docs/wsx-design-plan.md).
 
@@ -52,6 +54,8 @@ wsx/
 ├── go.mod
 ├── go.sum
 ├── AGENTS.md
+├── CLAUDE.md
+├── SKILL.md
 ├── cmd/
 └── internal/
 ```
@@ -73,8 +77,7 @@ More detailed structure and implementation phases are documented in
 
 Late-stage distribution work from the implementation plan:
 
-- add the bundled top-level `SKILL.md`
-- implement `wsx skill-install` and `wsx skill-uninstall`
+- complete the remaining distribution work such as release packaging and install documentation
 
 ## Development
 
