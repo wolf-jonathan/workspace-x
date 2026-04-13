@@ -22,7 +22,7 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 
 	output := stdout.String()
 	for _, snippet := range []string{
-		"Currently supported commands:",
+		"Commands:",
 		"add",
 		"agent-init",
 		"doctor",
@@ -38,7 +38,6 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 		"skill-uninstall",
 		"status",
 		"tree",
-		"Only implemented commands are shown below.",
 	} {
 		if !strings.Contains(output, snippet) {
 			t.Fatalf("help output = %q, want substring %q", output, snippet)

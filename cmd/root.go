@@ -12,7 +12,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Manage Windows-first AI workspaces",
 		Long: `Manage Windows-first AI workspaces.
 
-Currently supported commands:
+Commands:
   add     Add a linked repository to the current workspace
   agent-init Generate workspace AI instruction files
   doctor  Validate workspace health and portability
@@ -27,9 +27,7 @@ Currently supported commands:
   skill-install Install the bundled wsx SKILL.md
   skill-uninstall Remove an installed wsx skill
   status  Run git status across linked repositories
-  tree    Show a clean directory tree for the current workspace
-
-Only implemented commands are shown below.`,
+  tree    Show a clean directory tree for the current workspace`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

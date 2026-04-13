@@ -5,14 +5,6 @@ It links existing local repositories into one workspace directory so tools like
 Codex, Claude Code, and Copilot can operate across them as one coherent
 codebase without copying or merging anything.
 
-## Status
-
-The current implementation covers the core workspace commands, git orchestration
-commands, AI-facing inspection commands, `doctor`, generated workspace
-instruction files, and bundled skill install and uninstall support. The product
-direction and invariants remain defined in
-[docs/wsx-design-plan.md](docs/wsx-design-plan.md).
-
 ## How it works
 
 A `wsx` workspace contains:
