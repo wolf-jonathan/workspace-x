@@ -365,119 +365,6 @@ Exit code is non-zero if any check fails, regardless of output format.
 
 ### AI-Focused Commands
 
-#### `wsx dump`
-Outputs file contents across the workspace in a single AI-digestible block. This is a **targeted extraction tool** - it is not meant to dump entire repos (which would consume a full context window). A filter is always required.
-
-```bash
-# Dump only README files - quick architecture overview
-wsx dump --include "README.md"
-
-# Dump only API contracts and schemas
-wsx dump --include "*.yaml,*.json" --exclude "package*.json,*.lock"
-
-# Dump a specific subfolder across all repos
-wsx dump --path "src/api"
-
-# Dump one small repo entirely (e.g. a types/contracts repo)
-wsx dump --repo auth-contracts
-
-# Dump everything (opt-in, not the default)
-wsx dump --all-files
-```
-
-Running `wsx dump` with no flags refuses to run and prompts you to be specific:
-
-```
-wsx dump requires a filter to avoid overwhelming AI context.
-Use --include, --path, or --repo to narrow the output.
-Run with --all-files to override (not recommended for large repos).
-
-Tip: try 'wsx tree' first to see what's in your workspace.
-```
-
-**Markdown output (default):**
-```
-# Workspace: payments-debug
-
-## auth-service/src/main.go
-```go
-package main
-...
-```
-
-## payments-api/src/handler.go
-```go
-package handler
-...
-```
-```
-
-**Gitignore behavior (default: on)**
-
-By default, `wsx dump` respects `.gitignore` rules in each linked repo. This keeps AI context clean and focused - no build artifacts, secrets, lock files, or generated code cluttering the dump.
-
-The ignore chain applied per repo, in order:
-1. Global git ignore (`~/.config/git/ignore` or `~/.gitignore_global`)
-2. The repo's `.gitignore`
-3. Any nested `.gitignore` files within subdirectories
-4. `wsx`'s own built-in defaults (see below)
-
-**Built-in default excludes** (always applied, even with `--no-ignore` - these are noise in any AI context):
-
-```
-.git/
-.DS_Store
-Thumbs.db
-*.pyc, __pycache__/
-*.class
-```
-
-These cannot be overridden even with `--no-ignore` - they are never meaningful to an AI. (If you have a genuine edge case, use `--include` explicitly.)
-
-**Flag reference:**
-
-Filter flags (at least one required unless `--all-files` is set):
-
-| Flag | Meaning |
-|---|---|
-| `--include "*.go,*.ts"` | Only files matching these globs |
-| `--path "src/api"` | Only files under this relative path in each repo |
-| `--repo <n>` | Only files from one specific linked repo |
-| `--exclude "*.lock"` | Additional excludes layered on top of gitignore rules |
-
-Scope flags (orthogonal - each controls a different axis):
-
-| Flag | Meaning |
-|---|---|
-| `--all-files` | Skip the filter requirement - dump everything |
-| `--no-ignore` | Disable gitignore rule parsing. Built-in excludes (`.git/`, `.DS_Store`) still apply |
-
-`--all-files` and `--no-ignore` are independent and composable:
-```bash
-wsx dump --all-files                       # everything, gitignore respected
-wsx dump --all-files --no-ignore           # truly everything (except .git/)
-wsx dump --include "*.go" --no-ignore      # go files including gitignored ones
-```
-
-Output flags:
-
-| Flag | Meaning |
-|---|---|
-| `--format json` | Structured output: `[{ "repo", "file", "content" }]` |
-| `--max-tokens <n>` | Truncate with a warning if estimated token count exceeds n |
-| `--dry-run` | List matched files without printing contents |
-
-**Implementation note:** Use the `github.com/sabhiram/go-gitignore` library for `.gitignore` parsing. It handles nested `.gitignore` files and pattern precedence correctly without reimplementing git's ignore logic from scratch.
-
-Designed to be piped directly into an AI prompt:
-```bash
-wsx dump --include "README.md" | claude -p "Give me an overview of how these services interact"
-wsx dump --path "src/api" | claude -p "Find inconsistencies in our API design across services"
-wsx dump --repo auth-contracts --all-files | claude -p "What types are exported from this package?"
-```
-
----
-
 #### `wsx tree`
 Outputs a clean directory tree of the whole workspace.
 
@@ -502,6 +389,7 @@ payments-debug/
 - When a directory is cut off by the depth limit, render a `...` marker under that directory to make truncation explicit.
 - Respects `.gitignore` by default. `--all` to show everything.
 - Clean output for use in AI system prompts.
+- This is the default discovery command. Use it before opening files.
 
 ---
 
@@ -527,8 +415,9 @@ Output:
 - `--context <n>` to show n lines of context around each match (like `grep -C`).
 - `--json` for machine-readable output: `[{ "repo", "file", "line", "match" }]`
 - Exit code is non-zero if no matches found (useful in scripts).
+- This is the default narrowing command after `wsx tree`.
 
-This is the go-to command for cross-repo AI queries. The result set is small and targeted - feed it to an AI with a follow-up question rather than dumping whole files:
+This is the go-to command for cross-repo AI queries. The result set is small and targeted. Use it to decide which exact files to read next rather than opening broad file sets:
 
 ```bash
 wsx grep "refreshToken" --json | claude -p "Which services handle token refresh and are they consistent?"
@@ -677,7 +566,6 @@ wsx/
 │   ├── fetch.go               ← replaces sync
 │   ├── exec.go
 │   ├── doctor.go
-│   ├── dump.go
 │   ├── tree.go
 │   ├── grep.go
 │   ├── prompt.go
@@ -690,7 +578,6 @@ wsx/
     ├── git/
     │   └── git.go             ← git status, fetch wrappers
     └── ai/
-        ├── dump.go            ← file traversal and formatting
         ├── grep.go            ← cross-repo search
         ├── prompt.go          ← prompt generation
         ├── agent.go           ← workspace instruction generation
@@ -709,7 +596,7 @@ wsx/
 | `github.com/spf13/viper` | Config file management |
 | `github.com/fatih/color` | Colored terminal output (disabled when piped) |
 | `github.com/atotto/clipboard` | `--copy` flag for `wsx prompt` |
-| `github.com/sabhiram/go-gitignore` | `.gitignore` parsing for `wsx dump` and `wsx tree` |
+| `github.com/sabhiram/go-gitignore` | `.gitignore` parsing for `wsx tree` and `wsx grep` |
 
 Keep dependencies minimal. No heavy frameworks. Standard library handles most file operations.
 
@@ -820,14 +707,13 @@ This phase is expanded because Windows support is a first-class requirement from
 ---
 
 ### Phase 5 - AI Commands
-**Goal:** `tree`, `grep`, `dump`, `prompt`, `agent-init`, `skill-install`, `skill-uninstall`.
+**Goal:** `tree`, `grep`, `prompt`, `agent-init`, `skill-install`, `skill-uninstall`.
 
 - [x] Implement `internal/ai/detect.go` - language/framework detection per repo
 - [x] Add `github.com/sabhiram/go-gitignore` dependency
 - [x] Implement `internal/ai/ignore.go` - gitignore chain loader (global + repo + nested)
 - [x] Implement `wsx tree` - respects gitignore by default, `--all` to bypass
 - [x] Implement `wsx grep` - cross-repo search with `--include`, `--exclude`, `--context`, `--json`
-- [x] Implement `wsx dump` - mandatory filter, gitignore support, all flags
 - [x] Implement `wsx prompt`
 - [x] Implement `wsx agent-init`
 - [x] Implement `wsx skill-install` to install the bundled top-level `SKILL.md` locally or globally
@@ -894,7 +780,7 @@ repos into it. Lets AI tools operate across multiple repos without merging them.
 | Local env file | `.wsx.env` gitignored | Keeps secrets and local paths out of version control |
 | Symlink strategy | Symlink with auto-fallback to junction on Windows; link_type detected at runtime, not stored in config | Transparent to all tools, zero lock-in, no permissions drama; config stays portable across platforms |
 | Windows support | First-class from Phase 1 | Primary developer platform; junction fallback makes it seamless |
-| `wsx dump` default | Requires a filter flag | Full repo dumps destroy AI context; targeted extraction is always more useful |
+| AI discovery flow | `wsx tree` then `wsx grep` | Discovery should stay cheap; narrowing should precede opening files |
 | `wsx sync` → removed | Replaced by `wsx fetch` + `wsx exec` | `pull` across repos is dangerous; `exec` is more powerful and explicit |
 | Output | Plain text + `--json` | AI-friendly, pipeable, no color when not TTY |
 | Agent integration | Bundle a first-party top-level `SKILL.md` plus install and uninstall flow | Makes `wsx` usable as both a CLI and an agent-native capability across Claude, Codex, Copilot, and similar tools without extra metadata formats |

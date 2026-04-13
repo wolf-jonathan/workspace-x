@@ -8,9 +8,9 @@ import (
 
 func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "wsx",
-		Short: "Manage Windows-first AI workspaces",
-		Long:  "Manage Windows-first AI workspaces.",
+		Use:           "wsx",
+		Short:         "Manage Windows-first AI workspaces",
+		Long:          "Manage Windows-first AI workspaces.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
@@ -19,7 +19,6 @@ func NewRootCommand() *cobra.Command {
 	root.AddCommand(newAddCommand())
 	root.AddCommand(newAgentCommand())
 	root.AddCommand(newDoctorCommand())
-	root.AddCommand(newDumpCommand())
 	root.AddCommand(newExecCommand())
 	root.AddCommand(newFetchCommand())
 	root.AddCommand(newGrepCommand())

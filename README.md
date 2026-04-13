@@ -195,13 +195,8 @@ wsx exec -- powershell -Command "git fetch; git status"
 
 - Searches linked repositories in workspace config order
 - Respects `.gitignore` by default
+- Use this after `wsx tree` to narrow to the exact files you should read
 - Exits non-zero when no matches are found
-
-`wsx dump [flags]`
-
-- Dumps selected file contents across linked repositories
-- Requires one narrowing scope unless `--all-files` is set
-- Supports `--include`, `--exclude`, `--path`, `--repo`, `--dry-run`, `--format`, `--max-tokens`, and `--no-ignore`
 
 `wsx prompt [--copy]`
 
@@ -238,7 +233,6 @@ wsx status --json
 wsx fetch --json --parallel
 wsx exec --json -- go test ./...
 wsx grep --json "TODO"
-wsx dump --format json --repo auth-contracts
 ```
 
 ## Development

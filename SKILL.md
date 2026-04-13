@@ -1,6 +1,6 @@
 ---
 name: wsx
-description: Windows-first AI workspace manager for linked local repositories. Use when operating inside a wsx workspace or when a user needs structured inspection, health checks, targeted code extraction, multi-repo execution, or agent instruction setup across linked repos. Prefer narrow, parseable commands and avoid token-wasteful full-workspace dumps.
+description: Windows-first AI workspace manager for linked local repositories. Use when operating inside a wsx workspace or when a user needs structured inspection, health checks, multi-repo execution, or agent instruction setup across linked repos. Prefer tree for discovery, grep for narrowing, and exact-file reads instead of broad content extraction.
 ---
 
 # wsx
@@ -36,11 +36,8 @@ Treat these as product invariants:
 - Prefer parseable output. If another tool or agent will consume the result, use
   `--json` when the command supports it.
 - Prefer narrow inspection over broad extraction.
-- Prefer metadata before content: start with `doctor`, `list`, `tree`, or
-  `grep` before using `dump`.
-- Do not use `dump` as a default discovery tool.
-- Do not use `--all-files` unless the user explicitly wants a full capture or
-  the target is a very small repo.
+- Position `tree` as the default discovery command.
+- Position `grep` as the default narrowing command after discovery.
 - Respect `.gitignore` behavior by default. Only use `--no-ignore` when ignored
   files are the explicit target.
 
@@ -54,16 +51,17 @@ This section is the main policy for AI use. Follow it strictly.
 2. Run `wsx list --json` to understand linked repos and resolved paths.
 3. Run `wsx tree` to see shape and directory layout.
 4. Run `wsx grep` to find the exact files or symbols you need.
-5. Run `wsx dump` only after you know the smallest useful slice to extract.
+5. Read exact files directly after `grep` has narrowed the target.
 6. Run `wsx prompt` only when the user explicitly needs a reusable system prompt
    for another agent.
 
 ### What counts as wasteful
 
-- Dumping an entire workspace to "see what is here"
-- Dumping an entire medium or large repo instead of first narrowing with
-  `tree`, `grep`, `--path`, or `--include`
-- Using `--all-files` for convenience
+- Reading broad swaths of files to "see what is here" instead of using `tree`
+  first
+- Running wide searches without `--include` or `--exclude` when the question is
+  already scoped
+- Using `--all` on `tree` or unconstrained file reads without a specific reason
 - Using `--no-ignore` without a specific reason
 - Emitting markdown when structured JSON would be easier for a downstream tool
 - Running `wsx exec` with shell syntax but forgetting to invoke a shell
@@ -72,15 +70,13 @@ This section is the main policy for AI use. Follow it strictly.
 
 - Use `wsx tree --depth 2` for quick structure
 - Use `wsx grep "SymbolName" --json` to locate precise files before extraction
-- Use `wsx dump --path "src/api"` instead of dumping a whole service
-- Use `wsx dump --include "*.md"` for architecture summaries
-- Use `wsx dump --dry-run` to inspect match scope before printing contents
-- Use `wsx dump --max-tokens N` when handing content directly to an AI model
+- Use `wsx grep "openapi" --include "*.yaml,*.json"` before opening schema files
+- Read only the exact files identified by `tree` and `grep`
+- Keep the number of opened files proportional to the question being asked
 
 ### Bad patterns
 
-- `wsx dump --all-files` in a normal product workspace
-- `wsx dump --repo frontend` when you only need one folder or file type
+- Reading a whole repo when `tree` or `grep` would identify the relevant files
 - `wsx prompt` when a short ad hoc explanation would do
 - `wsx exec -- git status | cat` because `exec` does not implicitly use a shell
 
@@ -92,7 +88,7 @@ For most work inside a `wsx` workspace:
 2. `wsx list --json`
 3. `wsx tree --depth 2`
 4. `wsx grep ...` or `wsx status --json`
-5. `wsx dump ...` only for a narrow, chosen slice
+5. Read exact files only after `tree` and `grep` have narrowed the target
 
 For automation:
 
@@ -248,7 +244,7 @@ Use it when:
 
 Agent guidance:
 
-- Prefer this before `dump`
+- This is the default workspace discovery command
 - The default depth is intentionally shallow and usually sufficient
 - Use `--all` only when ignored files are relevant
 
@@ -259,63 +255,13 @@ Searches across linked repositories in workspace config order.
 Use it when:
 
 - Locating files, symbols, text fragments, TODOs, or config keys
-- Narrowing a later `dump`
+- Narrowing the exact files you should open next
 
 Agent guidance:
 
-- Prefer this before `dump`
+- This is the default narrowing command after `tree`
 - Use `--include` and `--exclude` aggressively to narrow scope
 - Use `--json` when a tool or agent will post-process the results
-
-### `wsx dump [flags]`
-
-Dumps selected file contents across linked repositories.
-
-Use it when:
-
-- You already know the smallest useful slice of code or docs to extract
-- You need a single AI-digestible block from a narrow cross-repo selection
-
-Do not use it when:
-
-- You are still discovering the workspace
-- You can answer the question from `tree`, `grep`, `list`, or `status`
-- The only reason to use `--all-files` is convenience
-
-Required narrowing rule:
-
-- `wsx dump` must be narrowed with `--include`, `--path`, or `--repo`, unless
-  `--all-files` is explicitly set
-
-Primary flags:
-
-- `--include "*.go,*.ts"` narrows by glob
-- `--exclude "*.lock"` removes noisy matches
-- `--path "src/api"` narrows by relative path
-- `--repo <name>` narrows to one linked repo
-- `--dry-run` lists matched files without content
-- `--format json` emits structured file objects
-- `--max-tokens <n>` truncates once the estimated token budget is reached
-- `--no-ignore` disables repo `.gitignore` parsing but still skips built-in
-  noise files
-- `--all-files` disables the normal filter requirement
-
-Agent guidance:
-
-- Use `--dry-run` first if the scope might be large
-- Prefer `--path` or `--include` over repo-wide dumps
-- Prefer `--max-tokens` when piping into another model
-- Treat `--all-files` as an exception, not a normal workflow
-
-Examples:
-
-```powershell
-wsx dump --include "README.md"
-wsx dump --path "src/api"
-wsx dump --include "*.yaml,*.json" --exclude "package*.json,*.lock"
-wsx dump --dry-run --repo auth-contracts --include "*.ts"
-wsx dump --format json --path "internal/workspace"
-```
 
 ### `wsx prompt [--copy]`
 
@@ -377,7 +323,6 @@ wsx status --json
 wsx fetch --json --parallel
 wsx exec --json -- go test ./...
 wsx grep --json "TODO"
-wsx dump --format json --path "internal/ai"
 ```
 
 ## Design And Handoff Sources

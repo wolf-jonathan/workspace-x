@@ -579,7 +579,7 @@ into separate owned modules.
 
 **Frozen contracts after this slice:**
 
-- `internal/ai` now owns gitignore-chain loading for later AI-facing commands instead of duplicating ignore handling inside `tree`, `grep`, or `dump`.
+- `internal/ai` now owns gitignore-chain loading for later AI-facing commands instead of duplicating ignore handling inside `tree` or `grep`.
 - `LoadIgnoreMatcher` resolves the repo root once and returns a matcher that accepts repo-relative or absolute paths under that root.
 - Built-in AI noise excludes are always enforced by the matcher and are not dependent on repository ignore files.
 - Nested `.gitignore` files participate in a single ordered precedence chain so deeper rules can override broader parent rules within their branch.
@@ -732,54 +732,6 @@ into separate owned modules.
   - stabilized `cmd/add_test.go` on Windows by comparing resolved link targets with `os.SameFile` instead of raw path strings, because `filepath.EvalSymlinks` may return a different canonical spelling for the same directory
   - corrected the `internal/ai/grep_test.go` context fixture so it contains exactly two pattern matches, which keeps the test aligned with the documented "one result per literal matching line" contract
 
-### Task C4 - `dump`
-
-**Owner:** Agent 15
-
-**Files:**
-
-- `cmd/dump.go`
-- `internal/ai/dump.go`
-- related tests
-
-**Depends on:**
-
-- ignore handling
-
-**Progress update (2026-04-13):**
-
-- Added `internal/ai/dump.go` with the initial dump seam:
-  - `DumpRepo`
-  - `DumpOptions`
-  - `DumpFile`
-  - `DumpResult`
-  - `DumpWorkspace(...)`
-  - `RenderDumpMarkdown(...)`
-  - `ValidateDumpScope(...)`
-- Added `cmd/dump.go` and wired `dump` into the root Cobra command and help text.
-- Implemented targeted workspace extraction behavior for AI-facing use:
-  - requires one narrowing scope by default via `--include`, `--path`, or `--repo`
-  - supports `--all-files` as the explicit override
-  - respects the shared ignore matcher by default
-  - supports `--no-ignore` while still enforcing built-in noise excludes like `.git/`
-  - supports `--exclude`, `--dry-run`, `--format json`, and `--max-tokens`
-  - preserves workspace config order for repos and sorted relative paths within each repo
-- Added black-box tests in:
-  - `internal/ai/dump_test.go` for filtering, ignore handling, dry-run behavior, markdown rendering, and token-budget truncation
-  - `cmd/dump_test.go` for scope enforcement, markdown output, JSON output, repo narrowing, `--no-ignore`, and `--max-tokens`
-
-**Frozen contracts after this slice:**
-
-- `wsx dump` must refuse to run without `--include`, `--path`, `--repo`, or `--all-files`.
-- `wsx dump` respects `.gitignore` by default and `--no-ignore` disables only repository ignore rules, not the built-in noise excludes.
-- `wsx dump --format json` emits one object per matched file with `repo`, `file`, and `content` omitted during `--dry-run`.
-- `wsx dump --max-tokens` truncates the emitted file list once the estimated token budget is exceeded and surfaces a warning in markdown output.
-
-**Verification status:**
-
-- `go test ./internal/ai -run Dump`
-- `go test ./cmd -run Dump`
-
 ### Task C5 - `prompt`
 
 **Owner:** Agent 16
@@ -822,6 +774,36 @@ into separate owned modules.
 
 - `go test ./internal/ai -run Prompt`
 - `go test ./cmd -run "Test(Prompt|RootHelpShowsSupportedCommands)"`
+
+### Task C4 - `dump` removal
+
+**Owner:** Codex
+
+**Files:**
+
+- deleted `cmd/dump.go`
+- deleted `cmd/dump_test.go`
+- deleted `internal/ai/dump.go`
+- deleted `internal/ai/dump_test.go`
+- updated docs and skill guidance
+
+**Progress update (2026-04-13):**
+
+- Removed the `dump` command from the CLI and root help output.
+- Deleted the command and internal implementation seams instead of leaving dead
+  code behind.
+- Repositioned AI-facing inspection guidance around:
+  - `wsx tree` for cheap discovery
+  - `wsx grep` for narrowing
+  - direct exact-file reads after narrowing
+- Updated `README.md`, `SKILL.md`, `CLAUDE.md`, `AGENTS.md`, and the design
+  notes so the documented command surface matches the shipped CLI.
+
+**Frozen contracts after this slice:**
+
+- `wsx` no longer exposes a `dump` command.
+- AI-oriented discovery should start with `wsx tree`.
+- AI-oriented narrowing should use `wsx grep` before opening files broadly.
 
 ### Task C6 - `agent-init`
 
@@ -991,7 +973,7 @@ describes real command behavior instead of speculation.
 3. `init`
 4. In parallel: `add`, `remove`, `list`
 5. In parallel: git runner layer, then `status`, `fetch`, `exec`
-6. In parallel: ignore handling, detection, then `tree`, `grep`, `dump`, `prompt`, `agent-init`
+6. In parallel: ignore handling, detection, then `tree`, `grep`, `prompt`, `agent-init`
 7. `doctor`
 8. `SKILL.md`, `skill-install`, `skill-uninstall`
 9. Full integration pass across the whole CLI

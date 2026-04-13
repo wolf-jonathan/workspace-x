@@ -44,7 +44,6 @@ wsx/
 │   ├── fetch.go
 │   ├── exec.go
 │   ├── doctor.go
-│   ├── dump.go
 │   ├── tree.go
 │   ├── grep.go
 │   ├── prompt.go
@@ -62,7 +61,8 @@ wsx/
 - `wsx list` reports live link health and runtime link type.
 - `wsx doctor` must distinguish interactive TTY behavior from non-interactive agent or CI behavior.
 - `wsx fetch` is the safe built-in multi-repo sync primitive. Do not replace it with implicit pull behavior.
-- `wsx dump` must require a narrowing filter unless the caller explicitly opts into dumping everything.
+- `wsx tree` is the discovery command. Keep it cheap and readable.
+- `wsx grep` is the narrowing command. Use it before opening files broadly.
 - The top-level `SKILL.md` must stay aligned with the CLI behavior and the design doc invariants.
 
 ## Docs Expectations

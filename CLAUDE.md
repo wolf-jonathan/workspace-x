@@ -12,7 +12,7 @@ lives in `.wsx.env`.
 - `cmd/`: Cobra command entrypoints. Keep command files thin.
 - `internal/workspace/`: config, env loading, path resolution, and link handling.
 - `internal/git/`: shared git command runner and repo operations.
-- `internal/ai/`: AI-facing tree, grep, dump, prompt, agent, and skill helpers.
+- `internal/ai/`: AI-facing tree, grep, prompt, agent, and skill helpers.
 - `docs/`: design and implementation planning documents.
 
 ## Core invariants

@@ -14,7 +14,12 @@ const (
 	SkillName        = "wsx"
 )
 
-const defaultBundledSkill = `# wsx
+const defaultBundledSkill = `---
+name: wsx
+description: Windows-first AI workspace manager for linked local repositories. Use when operating inside a wsx workspace or when a user needs structured inspection, health checks, multi-repo execution, or agent instruction setup across linked repos. Prefer tree for discovery, grep for narrowing, and exact-file reads instead of broad content extraction.
+---
+
+# wsx
 
 Use wsx when you need to inspect or operate on a multi-repo workspace built
 from links to existing local repositories.
@@ -39,8 +44,10 @@ from links to existing local repositories.
 
 1. Run wsx doctor --json first when you enter an unfamiliar workspace.
 2. Use wsx list --json to inspect linked repos and resolved paths.
-3. Use wsx status --json, wsx fetch --json, or wsx exec --json -- ... for structured multi-repo automation.
-4. Use wsx tree, wsx grep, wsx dump, and wsx prompt for AI-oriented workspace inspection.
+3. Use wsx tree for workspace discovery.
+4. Use wsx grep to narrow to exact files or symbols before reading content.
+5. Use wsx status --json, wsx fetch --json, or wsx exec --json -- ... for structured multi-repo automation.
+6. Use wsx prompt only when the user explicitly needs a reusable workspace prompt.
 
 ## Command guidance
 
@@ -49,7 +56,8 @@ from links to existing local repositories.
 - wsx remove: removes the workspace link and config entry only. It must not touch the target repo.
 - wsx list: reports live link health and runtime link type.
 - wsx doctor: distinguishes interactive TTY use from non-interactive agent or CI use.
-- wsx dump: requires a narrowing filter unless --all-files is explicitly set.
+- wsx tree: use this first for cheap workspace discovery.
+- wsx grep: use this after tree to narrow scope before reading files.
 `
 
 type SkillInstallResult struct {
