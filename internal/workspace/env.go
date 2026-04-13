@@ -89,6 +89,7 @@ func ResolvePath(path string, env EnvVars) (string, error) {
 		return "", resolveErr
 	}
 
+	resolved = strings.ReplaceAll(resolved, `\`, string(os.PathSeparator))
 	resolved = strings.ReplaceAll(resolved, "/", string(os.PathSeparator))
 	return filepath.Clean(resolved), nil
 }
