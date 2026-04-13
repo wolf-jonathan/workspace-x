@@ -2,14 +2,13 @@
 
 ## Purpose
 
-This repository contains the `wsx` CLI described in
-[docs/wsx-design-plan.md](docs/wsx-design-plan.md). `wsx` is not a generic file
-sync tool. It is a Windows-first AI workspace manager that links existing local
+This repository contains the `wsx` CLI. `wsx` is not a generic file sync tool.
+It is a Windows-first AI workspace manager that links existing local
 repositories into one workspace directory.
 
 ## Product Rules
 
-- Treat the design plan as the current source of truth unless the user explicitly overrides it.
+- Treat `README.md`, CLI help output, and tests as the current source of truth unless the user explicitly overrides them.
 - Preserve the core model: a workspace contains `.wsx.json`, `.wsx.env`, and linked repo directories.
 - Keep `.wsx.json` portable. Stored paths should remain parameterized with `${VAR}` placeholders when available.
 - Resolve `${VAR}` placeholders at point of use. Loading config must not silently rewrite them to absolute paths.
@@ -67,8 +66,8 @@ wsx/
 
 ## Docs Expectations
 
-- Keep `README.md` aligned with the current design plan and implementation status.
-- If behavior changes, update the design doc or explicitly document the divergence.
+- Keep `README.md` aligned with the current implementation and CLI help output.
+- If behavior changes, update the public docs in the same change.
 - Document Windows behavior with concrete detail, especially around symlink and junction handling.
 
 ## Delivery And Handoff Expectations
@@ -77,9 +76,9 @@ wsx/
 - After implementing a feature, explain how to run it locally.
 - After implementing a feature, explain how to run the relevant tests locally.
 - After each implementation, update the CLI help output so `--help` reflects everything currently supported.
-- If the implementation and tests pass, update progress notes for handoff to future AI agents in the appropriate project docs.
+- If the implementation and tests pass, update any public-facing handoff notes that still exist in the repo.
 
 ## Working Style
 
 - Prefer small, reviewable steps that preserve the invariants above.
-- If a requested change conflicts with the design plan, call out the conflict and either update the docs or get clarification.
+- If a requested change conflicts with the documented product behavior, call out the conflict and either update the docs or get clarification.

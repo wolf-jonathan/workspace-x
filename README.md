@@ -5,6 +5,12 @@ workspaces. The `wsx` command links existing local repositories into one
 workspace directory so tools like Codex, Claude Code, and Copilot can operate
 across them as one coherent codebase without copying or merging anything.
 
+This repo intentionally keeps a small set of root Markdown files:
+
+- `README.md` for public product and usage documentation
+- `SKILL.md` for agent-native `wsx` guidance
+- `AGENTS.md` and `CLAUDE.md` for workspace-aware agent tooling conventions
+
 ## How it works
 
 A Workspace X workspace contains:
@@ -281,3 +287,9 @@ go test ./internal/git
 
 Use `go run . --help` or `go run . <command> --help` to confirm the current CLI
 surface before updating docs.
+
+## Repository notes
+
+- `LICENSE` defines the public usage terms for this repo.
+- `CONTRIBUTING.md` covers local setup and contribution expectations.
+- GitHub Actions runs `go test ./...` on pushes to `main` and on pull requests.

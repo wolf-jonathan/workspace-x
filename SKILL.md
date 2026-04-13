@@ -327,7 +327,7 @@ wsx grep --json "TODO"
 
 ## Design And Handoff Sources
 
-- The product source of truth is `docs/wsx-design-plan.md`
-- The implementation and handoff source of truth is
-  `docs/implementation-plan.md`
+- The product source of truth is the current `README.md`, CLI help output, and
+  tests
+- Keep implementation behavior, `README.md`, and this `SKILL.md` aligned
 - Keep this `SKILL.md`, `README.md`, and actual CLI behavior aligned

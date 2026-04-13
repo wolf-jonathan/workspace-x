@@ -24,3 +24,7 @@ Thumbs.db
 # Local environment files
 .env
 .env.*
+
+# Local agent/tool state
+.agents/
+.claude/

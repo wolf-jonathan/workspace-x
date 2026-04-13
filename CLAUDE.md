@@ -13,7 +13,8 @@ lives in `.wsx.env`.
 - `internal/workspace/`: config, env loading, path resolution, and link handling.
 - `internal/git/`: shared git command runner and repo operations.
 - `internal/ai/`: AI-facing tree, grep, prompt, agent, and skill helpers.
-- `docs/`: design and implementation planning documents.
+- `README.md`: public product and usage documentation.
+- `SKILL.md`: bundled agent guidance shipped with the repo.
 
 ## Core invariants
 
@@ -28,7 +29,7 @@ lives in `.wsx.env`.
 
 ## Working rules
 
-- Treat `docs/wsx-design-plan.md` as the product source of truth unless explicitly changed.
+- Treat `README.md`, CLI help text, and tests as the product source of truth unless explicitly changed.
 - Preserve the workspace model: workspace root plus `.wsx.json`, `.wsx.env`, and linked repo directories.
 - Prefer small, reviewable changes and reuse shared internal seams instead of duplicating logic in commands.
-- If behavior changes, update `README.md`, `SKILL.md`, and the implementation notes so the docs stay aligned with the CLI.
+- If behavior changes, update `README.md` and `SKILL.md` so the docs stay aligned with the CLI.
