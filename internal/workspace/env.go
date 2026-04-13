@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -90,4 +91,25 @@ func ResolvePath(path string, env EnvVars) (string, error) {
 
 	resolved = strings.ReplaceAll(resolved, "/", string(os.PathSeparator))
 	return filepath.Clean(resolved), nil
+}
+
+func SaveEnv(root string, env EnvVars) error {
+	keys := make([]string, 0, len(env))
+	for key := range env {
+		if strings.TrimSpace(key) == "" {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	var builder strings.Builder
+	for _, key := range keys {
+		builder.WriteString(key)
+		builder.WriteByte('=')
+		builder.WriteString(env[key])
+		builder.WriteByte('\n')
+	}
+
+	return os.WriteFile(filepath.Join(root, EnvFileName), []byte(builder.String()), 0o644)
 }

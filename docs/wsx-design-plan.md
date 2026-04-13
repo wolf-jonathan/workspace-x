@@ -796,10 +796,10 @@ This phase is expanded because Windows support is a first-class requirement from
 ### Phase 3 - Doctor & Portability
 **Goal:** `wsx doctor` is fully working including interactive variable resolution for new teammates.
 
-- [ ] Implement all health checks (broken refs, duplicates, nesting, case collisions, non-git dirs)
-- [ ] Implement TTY-sensitive variable resolution - interactive prompt + save to `.wsx.env` when TTY, structured error when non-TTY
-- [ ] Implement `--fix` flag - enables interactive resolution, errors if stdin is not a TTY
-- [ ] `--json` output for AI agent consumption
+- [x] Implement all health checks (broken refs, duplicates, nesting, case collisions, non-git dirs)
+- [x] Implement TTY-sensitive variable resolution - interactive prompt + save to `.wsx.env` when TTY, structured error when non-TTY
+- [x] Implement `--fix` flag - enables interactive resolution, errors if stdin is not a TTY
+- [x] `--json` output for AI agent consumption
 - [ ] Test the full new-teammate flow end to end on Windows
 
 **Prompt to use:**

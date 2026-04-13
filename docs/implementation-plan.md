@@ -890,6 +890,32 @@ parallel wave.
 
 This command is likely to break if built during active foundational refactoring.
 
+**Progress update (2026-04-13):**
+
+- Added `cmd/doctor.go` and wired `doctor` into the root Cobra command and help text.
+- Added command-level black-box tests in `cmd/doctor_test.go` for:
+  - healthy workspace validation in plain text output
+  - non-interactive unresolved-variable reporting in `--json`
+  - `--fix` refusing to run without a TTY
+  - interactive variable resolution that writes `.wsx.env`
+- Implemented the initial doctor behavior for portability and teammate onboarding:
+  - validates `.wsx.json` loading and `.wsx.env` presence
+  - detects unresolved `${VAR}` placeholders and prompts only when stdin is interactive
+  - writes resolved variables back to `.wsx.env`
+  - checks duplicate names, case-collision risks, workspace nesting, nested refs, live links, and non-git warnings
+
+**Frozen contracts after this slice:**
+
+- `wsx doctor` emits plain text by default and supports `--json` with a top-level `healthy` boolean and a `checks` array of `{name,status,message}` objects.
+- Unresolved variables are prompted for only when stdin is interactive; non-interactive runs report them as errors and exit non-zero.
+- `wsx doctor --fix` requires an interactive terminal and errors immediately otherwise.
+- Missing git metadata under a linked repo is a warning, not a failing health check.
+
+**Verification status:**
+
+- `go test ./cmd -run "Test(Doctor|RootHelpShowsSupportedCommands)"`
+- `go test ./... -run TestDoctor`
+
 ## Skill Support
 
 Keep skill support late in the implementation sequence.

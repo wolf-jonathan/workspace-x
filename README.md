@@ -8,7 +8,7 @@ without copying or merging anything.
 ## Status
 
 This project is in early implementation. The shared workspace layer, Windows
-link handling, `wsx init`, `wsx add`, `wsx remove`, `wsx list`, `wsx status`,
+link handling, `wsx init`, `wsx add`, `wsx remove`, `wsx list`, `wsx doctor`, `wsx status`,
 `wsx fetch`, `wsx exec`, `wsx tree`, `wsx grep`, `wsx dump`, `wsx prompt`, and `wsx agent-init` are in place, and the initial
 `internal/ai` gitignore and framework-detection seams are implemented for the
 next AI-facing command wave.
@@ -71,9 +71,10 @@ More detailed structure and implementation phases are documented in
 
 ## Next Implementation Target
 
-Parallel Track C from the implementation plan:
+Late-stage distribution work from the implementation plan:
 
-- finish late-stage commands like `doctor` and skill installation support
+- add the bundled top-level `SKILL.md`
+- implement `wsx skill-install` and `wsx skill-uninstall`
 
 ## Development
 
