@@ -28,7 +28,6 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "CLAUDE.md"), "# Auth Claude\nRun auth tests first.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "AGENTS.md"), "# Auth Agents\nKeep handlers thin.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "frontend", "package.json"), "{\n  \"dependencies\": {\"next\": \"1.0.0\"}\n}\n")
-	writeAgentCmdFile(t, filepath.Join(reposRoot, "frontend", ".github", "copilot-instructions.md"), "# Frontend Copilot\nPrefer server components.\n")
 	writeAgentEnvFile(t, root, reposRoot)
 
 	stdout := new(bytes.Buffer)
@@ -41,7 +40,7 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 		t.Fatalf("ExecuteCommand() error = %v", err)
 	}
 
-	for _, relativePath := range []string{"CLAUDE.md", "AGENTS.md", filepath.Join(".github", "copilot-instructions.md")} {
+	for _, relativePath := range []string{"CLAUDE.md", "AGENTS.md"} {
 		path := filepath.Join(root, relativePath)
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -58,8 +57,6 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 			"# Auth Claude",
 			"# Auth Agents",
 			"### Repo: `frontend`",
-			"#### Source: `.github/copilot-instructions.md`",
-			"# Frontend Copilot",
 		} {
 			if !strings.Contains(content, snippet) {
 				t.Fatalf("%s content = %q, want substring %q", relativePath, content, snippet)
@@ -68,7 +65,7 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 	}
 
 	output := stdout.String()
-	for _, snippet := range []string{"CLAUDE.md", "AGENTS.md", ".github/copilot-instructions.md"} {
+	for _, snippet := range []string{"CLAUDE.md", "AGENTS.md"} {
 		if !strings.Contains(output, snippet) {
 			t.Fatalf("command output = %q, want substring %q", output, snippet)
 		}

@@ -10,24 +10,7 @@ func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "wsx",
 		Short: "Manage Windows-first AI workspaces",
-		Long: `Manage Windows-first AI workspaces.
-
-Commands:
-  add     Add a linked repository to the current workspace
-  agent-init Generate workspace AI instruction files
-  doctor  Validate workspace health and portability
-  dump    Dump selected file contents across linked repositories
-  exec    Run a command across linked repositories
-  fetch   Run git fetch across linked repositories
-  grep    Search for a pattern across linked repositories
-  init    Initialize a workspace in the current directory
-  list    List linked repositories in the current workspace
-  prompt  Generate an AI system prompt for the current workspace
-  remove  Remove a linked repository from the current workspace
-  skill-install Install the bundled wsx SKILL.md
-  skill-uninstall Remove an installed wsx skill
-  status  Run git status across linked repositories
-  tree    Show a clean directory tree for the current workspace`,
+		Long:  "Manage Windows-first AI workspaces.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

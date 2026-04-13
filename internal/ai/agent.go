@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	WorkspaceClaudeFilePath          = "CLAUDE.md"
-	WorkspaceAgentsFilePath          = "AGENTS.md"
-	WorkspaceCopilotInstructionsPath = ".github/copilot-instructions.md"
+	WorkspaceClaudeFilePath = "CLAUDE.md"
+	WorkspaceAgentsFilePath = "AGENTS.md"
 )
 
 type InstructionRepo struct {
@@ -125,7 +124,7 @@ func RenderWorkspaceInstructions(instructions WorkspaceInstructions) string {
 
 	builder.WriteString("## Repo-Specific Imported Instructions\n\n")
 	if !hasImportedInstructions(instructions.Repos) {
-		builder.WriteString("No repo-specific `CLAUDE.md`, `AGENTS.md`, or `.github/copilot-instructions.md` files were found in linked repositories.\n\n")
+		builder.WriteString("No repo-specific `CLAUDE.md` or `AGENTS.md` files were found in linked repositories.\n\n")
 	} else {
 		for _, repo := range instructions.Repos {
 			builder.WriteString("### Repo: `")
@@ -240,7 +239,7 @@ func isImportedInstructionPath(relativePath string) bool {
 		return true
 	}
 
-	return normalized == ".github/copilot-instructions.md" || strings.HasSuffix(normalized, "/.github/copilot-instructions.md")
+	return false
 }
 
 func pathBase(path string) string {
@@ -255,7 +254,6 @@ func WriteWorkspaceInstructionFiles(root string, content string) error {
 	files := []string{
 		WorkspaceClaudeFilePath,
 		WorkspaceAgentsFilePath,
-		WorkspaceCopilotInstructionsPath,
 	}
 
 	for _, relativePath := range files {

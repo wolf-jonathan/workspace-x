@@ -51,10 +51,9 @@ func newAgentCommand() *cobra.Command {
 
 			_, err = fmt.Fprintf(
 				cmd.OutOrStdout(),
-				"Wrote %s, %s, and %s\n",
+				"Wrote %s and %s\n",
 				ai.WorkspaceClaudeFilePath,
 				ai.WorkspaceAgentsFilePath,
-				ai.WorkspaceCopilotInstructionsPath,
 			)
 			return err
 		},

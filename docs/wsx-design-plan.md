@@ -572,18 +572,17 @@ Creates:
 
 - `CLAUDE.md`
 - `AGENTS.md`
-- `.github/copilot-instructions.md`
 
-All three files contain the same generated workspace instructions so Claude Code, agent-oriented tools, and GitHub Copilot can all pick up the same context automatically. Contents include:
+Both files contain the same generated workspace instructions so Claude Code and agent-oriented tools can pick up the same context automatically. Contents include:
 
 - Workspace name and purpose (prompts user if not set)
 - List of all repos with their detected languages
 - Workspace directory structure
 - Guidance on how to navigate the symlinked layout
-- Imported sections from any linked-repo `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` files, clearly labeled by repo and source file
+- Imported sections from any linked-repo `CLAUDE.md` and `AGENTS.md` files, clearly labeled by repo and source file
 - Any custom notes (editable section at the bottom)
 
-Claude Code reads `CLAUDE.md` automatically, many agent tools look for `AGENTS.md`, and GitHub Copilot can use `.github/copilot-instructions.md`. This keeps multiple AI surfaces consistently oriented across sessions.
+Claude Code reads `CLAUDE.md` automatically, and many agent tools look for `AGENTS.md`. This keeps multiple AI surfaces consistently oriented across sessions.
 
 ---
 

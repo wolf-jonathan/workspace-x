@@ -210,7 +210,7 @@ wsx exec -- powershell -Command "git fetch; git status"
 `wsx agent-init [--purpose text]`
 
 - Generates synchronized workspace instruction files
-- Writes `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md`
+- Writes `CLAUDE.md` and `AGENTS.md`
 
 ### Skill commands
 

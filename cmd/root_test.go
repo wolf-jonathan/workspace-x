@@ -22,7 +22,7 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 
 	output := stdout.String()
 	for _, snippet := range []string{
-		"Commands:",
+		"Available Commands:",
 		"add",
 		"agent-init",
 		"doctor",

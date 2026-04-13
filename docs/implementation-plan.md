@@ -846,12 +846,11 @@ into separate owned modules.
   - `RenderWorkspaceInstructions(...)`
   - `WriteWorkspaceInstructionFiles(...)`
 - Added `cmd/agent.go` and wired `agent-init` into the root Cobra command and help text.
-- Expanded the original slice so one command now writes three synchronized top-level files:
+- Expanded the original slice so one command now writes two synchronized top-level files:
   - `CLAUDE.md`
   - `AGENTS.md`
-  - `.github/copilot-instructions.md`
 - Implemented linked-repo instruction import behavior:
-  - scans each resolved repo for `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md`
+  - scans each resolved repo for `CLAUDE.md` and `AGENTS.md`
   - includes imported content in clearly labeled repo-specific sections
   - keeps workspace-wide rules and repo-scoped instructions distinct in the generated output
 - Added black-box tests in:
@@ -860,9 +859,9 @@ into separate owned modules.
 
 **Frozen contracts after this slice:**
 
-- `wsx agent-init` generates shared workspace instruction content and writes it to `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` in the workspace root.
+- `wsx agent-init` generates shared workspace instruction content and writes it to `CLAUDE.md` and `AGENTS.md` in the workspace root.
 - Imported linked-repo instruction files must be labeled by both repo name and source file path in the generated output.
-- Repo instruction discovery for this slice includes `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` anywhere under a linked repo, excluding `.git/`.
+- Repo instruction discovery for this slice includes `CLAUDE.md` and `AGENTS.md` anywhere under a linked repo, excluding `.git/`.
 
 **Verification status:**
 

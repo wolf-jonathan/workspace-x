@@ -12,7 +12,6 @@ func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *te
 	writeAgentTestFile(t, filepath.Join(authRoot, "go.mod"), "module example.com/auth\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "CLAUDE.md"), "# Auth Claude\nUse go test ./...\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "AGENTS.md"), "# Auth Agents\nUse the auth repo policy.\n")
-	writeAgentTestFile(t, filepath.Join(authRoot, ".github", "copilot-instructions.md"), "# Copilot\nPrefer typed handlers.\n")
 
 	frontendRoot := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(frontendRoot, "package.json"), "{\n  \"dependencies\": {\"react\": \"1.0.0\"}\n}\n")
@@ -35,11 +34,9 @@ func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *te
 		"### Repo: `auth-service`",
 		"#### Source: `CLAUDE.md`",
 		"#### Source: `docs/AGENTS.md`",
-		"#### Source: `.github/copilot-instructions.md`",
 		"This section applies when working in linked repo `auth-service`.",
 		"# Auth Claude",
 		"# Auth Agents",
-		"# Copilot",
 		"### Repo: `frontend`",
 		"No repo-specific instruction files were found for this repo.",
 	} {
@@ -60,7 +57,6 @@ func TestWriteWorkspaceInstructionFilesWritesAllTargets(t *testing.T) {
 	for _, relativePath := range []string{
 		WorkspaceClaudeFilePath,
 		WorkspaceAgentsFilePath,
-		WorkspaceCopilotInstructionsPath,
 	} {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relativePath)))
 		if err != nil {
