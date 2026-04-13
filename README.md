@@ -1,6 +1,17 @@
 # Workspace X
 
 <p align="center">
+  <pre>
+██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗███████╗██████╗  █████╗  ██████╗███████╗    ██╗  ██╗
+██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝    ╚██╗██╔╝
+██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ███████╗██████╔╝███████║██║     █████╗       ╚███╔╝
+██║███╗██║██║   ██║██╔══██╗██╔═██╗ ╚════██║██╔═══╝ ██╔══██║██║     ██╔══╝       ██╔██╗
+╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗███████║██║     ██║  ██║╚██████╗███████╗    ██╔╝ ██╗
+ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝  ╚═╝ ╚═════╝╚══════╝    ╚═╝  ╚═╝
+  </pre>
+</p>
+
+<p align="center">
   <strong>wsx</strong>
 </p>
 
@@ -9,37 +20,37 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey" alt="Platform">
   <a href="https://github.com/wolf-jonathan/workspace-x/actions/workflows/ci.yml"><img src="https://github.com/wolf-jonathan/workspace-x/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-    <a href="https://github.com/wolf-jonathan/logseq-cli/commits/main"><img src="https://img.shields.io/github/last-commit/wolf-jonathan/workspace-x" alt="Last Commit"></a>
+  <a href="https://github.com/wolf-jonathan/workspace-x/commits/main"><img src="https://img.shields.io/github/last-commit/wolf-jonathan/workspace-x" alt="Last Commit"></a>
 </p>
 
-<h3 align="center">A CLI for AI-friendly multi-repo workspaces.</h3>
+<h3 align="center">A simple way to give AI one clean workspace across all your repos.</h3>
 
-<p align="center"><em>Link existing local repositories into one workspace directory without copying, vendoring, or flattening them.</em></p>
+<p align="center"><em>Point `wsx` at the repos you already have, and get one workspace folder that feels coherent to you and to your AI tools.</em></p>
 
 <p align="center">
-Workspace X keeps a portable workspace config in <code>.wsx.json</code>, keeps machine-specific state in <code>.wsx.env</code>, and exposes discovery and automation commands that are usable by humans and AI agents.
+Workspace X helps you spin up focused AI workspaces without moving code around or manually re-explaining your repo layout every time.
 </p>
 
 ---
 
 ## Why wsx
 
-Most multi-repo workflows force you into one of two bad options:
+If you use AI to help you code, the setup friction gets old fast.
 
-- copy repositories into a temporary mega-folder
-- teach every tool where each repo lives separately
+- One feature lives across three repos.
+- Your AI tool only sees the folder you opened.
+- You keep rebuilding ad hoc workspace folders.
+- The next session starts with the same mess again.
 
-`wsx` takes a cleaner path: keep each repo where it already lives, then create a
-workspace root that links them together in a stable, portable way.
+`wsx` is for that exact workflow.
 
-| Property | What You Get |
-|----------|-------------|
-| Portable workspace config | `.wsx.json` can keep `${VAR}` placeholders instead of machine-specific absolute paths |
-| Local-only machine state | `.wsx.env` holds path variables and should stay uncommitted |
-| Windows-correct linking | Tries symlinks first and falls back to junctions when Windows permissions require it |
-| Agent-friendly commands | Plain text by default, `--json` where structure is useful |
-| Safe multi-repo execution | `status`, `fetch`, and `exec` work across linked repos without shell magic |
-| Cheap discovery first | `tree` and `grep` help agents and humans narrow before opening files |
+It lets you create one clean workspace directory that points at the repos you
+already have, so you can:
+
+- open one folder instead of juggling several
+- give AI tools a clearer picture of the project you are actually working on
+- keep your setup repeatable instead of rebuilding it every session
+- share the workspace shape with teammates without baking in your personal paths
 
 ---
 
