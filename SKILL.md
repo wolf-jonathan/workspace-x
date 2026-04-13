@@ -3,15 +3,15 @@ name: wsx
 description: Windows-first AI workspace manager for linked local repositories. Use when operating inside a wsx workspace or when a user needs structured inspection, health checks, multi-repo execution, or agent instruction setup across linked repos. Prefer tree for discovery, grep for narrowing, and exact-file reads instead of broad content extraction.
 ---
 
-# wsx
+# Workspace X (wsx)
 
-Use `wsx` when you need to inspect or operate on a multi-repo workspace built
-from links to existing local repositories. This tool is Windows-first and is
-designed for AI agents as well as humans.
+Use Workspace X through the `wsx` command when you need to inspect or operate
+on a multi-repo workspace built from links to existing local repositories. This
+tool is Windows-first and is designed for AI agents as well as humans.
 
 ## Core Model
 
-A `wsx` workspace contains:
+A Workspace X workspace contains:
 
 - A portable committed config file: `.wsx.json`
 - A local machine state file: `.wsx.env`

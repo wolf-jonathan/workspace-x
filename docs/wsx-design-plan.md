@@ -1,11 +1,14 @@
-# `wsx` - AI Workspace Manager
+# Workspace X Design Plan
 ### Design & Implementation Plan
 
 ---
 
 ## 1. Overview
 
-`wsx` is a CLI tool that manages a **workspace directory** by symlinking other local repositories into it. The workspace becomes a single, unified directory that AI tools (Claude Code, Codex, etc.) can operate across - without moving or merging any code.
+Workspace X is a CLI tool whose command is `wsx`. It manages a **workspace
+directory** by symlinking other local repositories into it. The workspace
+becomes a single, unified directory that AI tools (Claude Code, Codex, etc.)
+can operate across without moving or merging any code.
 
 **Core idea:** Instead of manually copying files or opening multiple windows, you define a workspace once, add references to any repos you care about, and AI tools see them all as one coherent codebase.
 
@@ -740,11 +743,12 @@ This phase is expanded because Windows support is a first-class requirement from
 When building `wsx`, drop this at the repo root so Claude Code stays oriented:
 
 ```markdown
-# wsx - AI Workspace Manager
+# Workspace X - AI Workspace Manager
 
 ## What this is
-A Go CLI tool that manages a workspace directory by symlinking other local
-repos into it. Lets AI tools operate across multiple repos without merging them.
+A Go CLI tool whose command is `wsx` that manages a workspace directory by
+symlinking other local repos into it. Lets AI tools operate across multiple
+repos without merging them.
 
 ## Project layout
 - cmd/         One file per CLI command, using cobra

@@ -17,7 +17,7 @@ const configVersion = "1"
 func newInitCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init [name]",
-		Short: "Initialize a wsx workspace in the current directory",
+		Short: "Initialize a Workspace X workspace in the current directory",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cwd, err := os.Getwd()

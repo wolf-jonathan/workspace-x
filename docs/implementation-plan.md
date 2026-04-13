@@ -966,11 +966,15 @@ describes real command behavior instead of speculation.
   - skill install and uninstall instructions for local and global scope
   - a command-by-command reference aligned with current `--help` output
 - Updated `docs/wsx-design-plan.md` to mark the README and skill installation documentation tasks complete.
+- Standardized naming across docs, bundled skill text, and Cobra help:
+  - `Workspace X` is the product name in prose and titles
+  - `wsx` remains the CLI command and binary name
 
 **Verification status:**
 
 - Verified on 2026-04-13 with:
   - `go test ./...`
+  - `go test ./internal/ai ./cmd`
 
 ## Release Automation
 

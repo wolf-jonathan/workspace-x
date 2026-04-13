@@ -1,13 +1,13 @@
-# wsx
+# Workspace X
 
-`wsx` is a Windows-first Go CLI for building AI-friendly multi-repo workspaces.
-It links existing local repositories into one workspace directory so tools like
-Codex, Claude Code, and Copilot can operate across them as one coherent
-codebase without copying or merging anything.
+Workspace X is a Windows-first Go CLI for building AI-friendly multi-repo
+workspaces. The `wsx` command links existing local repositories into one
+workspace directory so tools like Codex, Claude Code, and Copilot can operate
+across them as one coherent codebase without copying or merging anything.
 
 ## How it works
 
-A `wsx` workspace contains:
+A Workspace X workspace contains:
 
 - `.wsx.json` as the committed shared workspace config
 - `.wsx.env` as the local machine-specific path variable file
@@ -117,7 +117,8 @@ wsx tree --depth 2
 
 ## Skill install and uninstall
 
-`wsx` ships a first-party top-level [SKILL.md](SKILL.md) for agent-native use.
+Workspace X ships a first-party top-level [SKILL.md](SKILL.md) for agent-native
+use.
 
 Install it into the current repo scope:
 

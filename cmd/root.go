@@ -11,8 +11,8 @@ var Version = "dev"
 func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "wsx",
-		Short:         "Manage Windows-first AI workspaces",
-		Long:          "Manage Windows-first AI workspaces.",
+		Short:         "Manage Workspace X Windows-first AI workspaces",
+		Long:          "Manage Workspace X Windows-first AI workspaces with the wsx CLI.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       Version,
