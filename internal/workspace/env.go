@@ -59,37 +59,50 @@ func ResolvePath(path string, env EnvVars) (string, error) {
 		return "", nil
 	}
 
-	var resolveErr error
-	resolved := varPattern.ReplaceAllStringFunc(path, func(match string) string {
-		if resolveErr != nil {
-			return match
+	var builder strings.Builder
+	last := 0
+
+	matches := varPattern.FindAllStringSubmatchIndex(path, -1)
+	for _, match := range matches {
+		start, end := match[0], match[1]
+		nameStart, nameEnd := match[2], match[3]
+
+		builder.WriteString(normalizeLiteralPathFragment(path[last:start]))
+
+		name := path[nameStart:nameEnd]
+		value, ok := lookupEnvValue(name, env)
+		if !ok {
+			return "", fmt.Errorf("%w: %s", ErrUnresolvedVariable, name)
 		}
+		builder.WriteString(value)
 
-		groups := varPattern.FindStringSubmatch(match)
-		if len(groups) != 2 {
-			return match
-		}
-
-		name := groups[1]
-		if env != nil {
-			if value, ok := env[name]; ok {
-				return value
-			}
-		}
-
-		if value, ok := os.LookupEnv(name); ok {
-			return value
-		}
-
-		resolveErr = fmt.Errorf("%w: %s", ErrUnresolvedVariable, name)
-		return match
-	})
-
-	if resolveErr != nil {
-		return "", resolveErr
+		last = end
 	}
 
-	return filepath.Clean(filepath.FromSlash(resolved)), nil
+	builder.WriteString(normalizeLiteralPathFragment(path[last:]))
+
+	return filepath.Clean(builder.String()), nil
+}
+
+func lookupEnvValue(name string, env EnvVars) (string, bool) {
+	if env != nil {
+		if value, ok := env[name]; ok {
+			return value, true
+		}
+	}
+
+	value, ok := os.LookupEnv(name)
+	return value, ok
+}
+
+func normalizeLiteralPathFragment(fragment string) string {
+	if fragment == "" {
+		return ""
+	}
+
+	fragment = strings.ReplaceAll(fragment, `\`, string(filepath.Separator))
+	fragment = strings.ReplaceAll(fragment, `/`, string(filepath.Separator))
+	return fragment
 }
 
 func SaveEnv(root string, env EnvVars) error {

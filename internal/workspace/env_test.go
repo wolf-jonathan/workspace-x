@@ -80,6 +80,24 @@ func TestResolvePathFallsBackToProcessEnv(t *testing.T) {
 	}
 }
 
+func TestResolvePathNormalizesLiteralSeparatorsWithoutRewritingEnvValues(t *testing.T) {
+	resolved, err := workspace.ResolvePath(`${WORK_REPOS}\payments-api/config`, workspace.EnvVars{
+		"WORK_REPOS": `C:\Users\Yoni\work`,
+	})
+	if err != nil {
+		t.Fatalf("ResolvePath() error = %v", err)
+	}
+
+	want := filepath.Clean(`C:\Users\Yoni\work\payments-api\config`)
+	if runtime.GOOS != "windows" {
+		want = filepath.Clean(`C:\Users\Yoni\work/payments-api/config`)
+	}
+
+	if resolved != want {
+		t.Fatalf("resolved path = %q, want %q", resolved, want)
+	}
+}
+
 func TestResolvePathReturnsErrorForMissingVariable(t *testing.T) {
 	t.Parallel()
 
