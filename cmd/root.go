@@ -9,6 +9,8 @@ import (
 var Version = "dev"
 
 func NewRootCommand() *cobra.Command {
+	disableWindowsExplorerDelay()
+
 	root := &cobra.Command{
 		Use:           "wsx",
 		Short:         "Manage Workspace X Windows-first AI workspaces",
@@ -81,4 +83,8 @@ func shouldShowHelp(err error) bool {
 	}
 
 	return false
+}
+
+func disableWindowsExplorerDelay() {
+	cobra.MousetrapHelpText = ""
 }

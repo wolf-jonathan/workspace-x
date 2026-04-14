@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/wolf-jonathan/workspace-x/cmd"
 )
 
@@ -41,6 +42,21 @@ func TestRootHelpShowsSupportedCommands(t *testing.T) {
 		if !strings.Contains(output, snippet) {
 			t.Fatalf("help output = %q, want substring %q", output, snippet)
 		}
+	}
+}
+
+func TestNewRootCommandDisablesWindowsExplorerDelay(t *testing.T) {
+	previous := cobra.MousetrapHelpText
+	t.Cleanup(func() {
+		cobra.MousetrapHelpText = previous
+	})
+
+	cobra.MousetrapHelpText = "enabled"
+
+	cmd.NewRootCommand()
+
+	if cobra.MousetrapHelpText != "" {
+		t.Fatalf("cobra.MousetrapHelpText = %q, want empty string", cobra.MousetrapHelpText)
 	}
 }
 
