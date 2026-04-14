@@ -87,6 +87,11 @@ Download the latest release for your platform from the GitHub Releases page:
 - Linux: download the `.tar.gz`, extract `wsx`, and move it to a directory on your `PATH` such as `/usr/local/bin`
 - macOS: download the `.tar.gz`, extract `wsx`, and move it to a directory on your `PATH` such as `/usr/local/bin`
 
+On Windows, a freshly downloaded `wsx.exe` can appear slow on first runs because
+Windows Defender or SmartScreen may scan unsigned binaries. If that happens,
+move it out of `Downloads`, run `Unblock-File` on the extracted executable, and
+only add a Defender exclusion if you explicitly trust the binary source.
+
 Release assets are published for:
 
 - Windows `amd64`, `arm64`
