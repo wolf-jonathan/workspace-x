@@ -4,19 +4,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/wolf-jonathan/workspace-x/internal/ai"
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
-	"github.com/spf13/cobra"
 )
 
 func newAgentCommand() *cobra.Command {
 	var purpose string
 
 	command := &cobra.Command{
-		Use:   "agent-init",
-		Short: "Generate or refresh workspace AI instruction files",
-		Long:  "Generate synchronized workspace AI instruction files. Existing CLAUDE.md and AGENTS.md files are overwritten with a warning.",
-		Args:  cobra.NoArgs,
+		Use:     "agent-init",
+		Short:   "Generate or refresh workspace AI instruction files",
+		Long:    "Generate synchronized workspace AI instruction files. Existing CLAUDE.md and AGENTS.md files are overwritten with a warning.",
+		Args:    cobra.NoArgs,
+		Example: `wsx agent-init --purpose "Debug payment incidents"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := workspace.LoadConfig("")
 			if err != nil {
@@ -41,12 +42,11 @@ func newAgentCommand() *cobra.Command {
 				})
 			}
 
-			instructions, err := ai.GenerateWorkspaceInstructions(loaded.Config.Name, purpose, repos)
+			content, err := ai.BuildWorkspaceInstructionContent(loaded.Config.Name, purpose, repos)
 			if err != nil {
 				return err
 			}
 
-			content := ai.RenderWorkspaceInstructions(instructions)
 			overwritten, err := ai.WriteWorkspaceInstructionFiles(loaded.Root, content)
 			if err != nil {
 				return err

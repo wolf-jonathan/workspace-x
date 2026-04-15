@@ -27,6 +27,8 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "go.mod"), "module example.com/auth\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "CLAUDE.md"), "# Auth Claude\nRun auth tests first.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "AGENTS.md"), "# Auth Agents\nKeep handlers thin.\n")
+	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", ".github", "copilot-instructions.md"), "# Copilot\nPrefer small changes.\n")
+	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "docs", "AGENTS.md"), "# Docs Agents\nUse the docs policy.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "frontend", "package.json"), "{\n  \"dependencies\": {\"next\": \"1.0.0\"}\n}\n")
 	writeAgentEnvFile(t, root, reposRoot)
 
@@ -41,7 +43,8 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 		t.Fatalf("ExecuteCommand() error = %v", err)
 	}
 
-	for _, relativePath := range []string{"CLAUDE.md", "AGENTS.md"} {
+	var generatedContent string
+	for index, relativePath := range []string{"CLAUDE.md", "AGENTS.md"} {
 		path := filepath.Join(root, relativePath)
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -49,19 +52,39 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 		}
 
 		content := string(data)
+		if index == 0 {
+			generatedContent = content
+		} else if content != generatedContent {
+			t.Fatalf("%s content = %q, want identical content to CLAUDE.md", relativePath, content)
+		}
+
 		for _, snippet := range []string{
 			"# Workspace Instructions",
 			"Purpose: Debug payment incidents",
+			"## Repo Instruction References",
 			"### Repo: `auth-service`",
-			"#### Source: `CLAUDE.md`",
-			"#### Source: `AGENTS.md`",
-			"## Auth Claude",
-			"## Auth Agents",
+			"- `.github/copilot-instructions.md`",
+			"- `AGENTS.md`",
+			"- `CLAUDE.md`",
+			"- `docs/AGENTS.md`",
 			"### Repo: `frontend`",
+			"No repo-specific instruction files were found for this repo.",
 		} {
 			if !strings.Contains(content, snippet) {
 				t.Fatalf("%s content = %q, want substring %q", relativePath, content, snippet)
 			}
+		}
+	}
+
+	for _, forbidden := range []string{
+		"Run auth tests first.",
+		"Keep handlers thin.",
+		"Prefer small changes.",
+		"Use the docs policy.",
+		"#### Source:",
+	} {
+		if strings.Contains(generatedContent, forbidden) {
+			t.Fatalf("generated content = %q, should not contain %q", generatedContent, forbidden)
 		}
 	}
 

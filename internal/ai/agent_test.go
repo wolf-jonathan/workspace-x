@@ -7,12 +7,15 @@ import (
 	"testing"
 )
 
-func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *testing.T) {
+func TestGenerateWorkspaceInstructionsIncludesInstructionReferences(t *testing.T) {
 	authRoot := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(authRoot, "go.mod"), "module example.com/auth\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "CLAUDE.md"), "# Auth Claude\nUse go test ./...\n")
-	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "AGENTS.md"), "# Auth Agents\nUse the auth repo policy.\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "AGENTS.md"), "# Root Auth Agents\nUse the root policy.\n")
+	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "AGENTS.md"), "# Docs Agents\nUse the auth repo policy.\n")
+	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "nested", "CLAUDE.md"), "# Nested Claude\nKeep handlers thin.\n")
+	writeAgentTestFile(t, filepath.Join(authRoot, ".github", "copilot-instructions.md"), "# Copilot Instructions\nPrefer small changes.\n")
+	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "readme.md"), "ignored content\n")
 
 	frontendRoot := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(frontendRoot, "package.json"), "{\n  \"dependencies\": {\"react\": \"1.0.0\"}\n}\n")
@@ -25,6 +28,27 @@ func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *te
 		t.Fatalf("GenerateWorkspaceInstructions() error = %v", err)
 	}
 
+	if got, want := len(instructions.Repos), 2; got != want {
+		t.Fatalf("len(instructions.Repos) = %d, want %d", got, want)
+	}
+
+	authRepo := instructions.Repos[0]
+	wantReferences := []string{
+		".github/copilot-instructions.md",
+		"AGENTS.md",
+		"CLAUDE.md",
+		"docs/AGENTS.md",
+		"docs/nested/CLAUDE.md",
+	}
+	if got := referencePaths(authRepo.References); !slicesEqual(got, wantReferences) {
+		t.Fatalf("auth repo references = %v, want %v", got, wantReferences)
+	}
+
+	frontendRepo := instructions.Repos[1]
+	if len(frontendRepo.References) != 0 {
+		t.Fatalf("frontend repo references = %v, want none", referencePaths(frontendRepo.References))
+	}
+
 	content := RenderWorkspaceInstructions(instructions)
 
 	for _, snippet := range []string{
@@ -32,12 +56,14 @@ func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *te
 		"Purpose: Debug payment incidents",
 		"`auth-service` (" + filepath.ToSlash(authRoot) + ") - Go",
 		"`frontend` (" + filepath.ToSlash(frontendRoot) + ") - Node.js / React",
+		"## Repo Instruction References",
 		"### Repo: `auth-service`",
-		"#### Source: `CLAUDE.md`",
-		"#### Source: `AGENTS.md`",
-		"This section applies when working in linked repo `auth-service`.",
-		"## Auth Claude",
-		"## Root Auth Agents",
+		"This section lists instruction file references only. Contents are not duplicated here.",
+		"- `.github/copilot-instructions.md`",
+		"- `AGENTS.md`",
+		"- `CLAUDE.md`",
+		"- `docs/AGENTS.md`",
+		"- `docs/nested/CLAUDE.md`",
 		"### Repo: `frontend`",
 		"No repo-specific instruction files were found for this repo.",
 	} {
@@ -47,10 +73,12 @@ func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *te
 	}
 
 	for _, forbidden := range []string{
-		"\n# Auth Claude\n",
-		"\n# Root Auth Agents\n",
-		"docs/AGENTS.md",
-		"## Auth Agents",
+		"Use go test ./...",
+		"Use the root policy.",
+		"Use the auth repo policy.",
+		"Keep handlers thin.",
+		"Prefer small changes.",
+		"#### Source:",
 	} {
 		if strings.Contains(content, forbidden) {
 			t.Fatalf("instructions content = %q, should not contain %q", content, forbidden)
@@ -58,14 +86,26 @@ func TestGenerateWorkspaceInstructionsIncludesRepoSpecificInstructionFiles(t *te
 	}
 }
 
-func TestNormalizeImportedInstructionMarkdownDemotesHeadersByOneLevel(t *testing.T) {
-	content := "# Top\n## Mid\n### Low\n###### Deep\nnot a header\n#NoSpace\n  # Indented\n"
+func TestBuildWorkspaceInstructionContentMatchesRenderedInstructions(t *testing.T) {
+	root := t.TempDir()
+	writeAgentTestFile(t, filepath.Join(root, "go.mod"), "module example.com/auth\n")
+	writeAgentTestFile(t, filepath.Join(root, "AGENTS.md"), "# Root Auth Agents\n")
 
-	got := normalizeImportedInstructionMarkdown(content)
-	want := "## Top\n### Mid\n#### Low\n###### Deep\nnot a header\n#NoSpace\n  ## Indented\n"
+	repos := []InstructionRepo{{Name: "auth-service", Root: root}}
 
-	if got != want {
-		t.Fatalf("normalizeImportedInstructionMarkdown() = %q, want %q", got, want)
+	built, err := BuildWorkspaceInstructionContent("payments-debug", "Debug payment incidents", repos)
+	if err != nil {
+		t.Fatalf("BuildWorkspaceInstructionContent() error = %v", err)
+	}
+
+	instructions, err := GenerateWorkspaceInstructions("payments-debug", "Debug payment incidents", repos)
+	if err != nil {
+		t.Fatalf("GenerateWorkspaceInstructions() error = %v", err)
+	}
+
+	rendered := RenderWorkspaceInstructions(instructions)
+	if built != rendered {
+		t.Fatalf("BuildWorkspaceInstructionContent() = %q, want %q", built, rendered)
 	}
 }
 
@@ -120,6 +160,28 @@ func TestWriteWorkspaceInstructionFilesOverwritesExistingTargets(t *testing.T) {
 			t.Fatalf("%s = %q, want %q", relativePath, string(data), content)
 		}
 	}
+}
+
+func referencePaths(references []InstructionReference) []string {
+	paths := make([]string, 0, len(references))
+	for _, reference := range references {
+		paths = append(paths, reference.Path)
+	}
+	return paths
+}
+
+func slicesEqual[T comparable](left, right []T) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func writeAgentTestFile(t *testing.T, path, content string) {

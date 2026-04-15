@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -17,16 +18,15 @@ type InstructionRepo struct {
 	Root string
 }
 
-type ImportedInstruction struct {
-	Path    string
-	Content string
+type InstructionReference struct {
+	Path string
 }
 
 type WorkspaceInstructionRepo struct {
 	Name        string
 	Root        string
 	Detection   RepoDetection
-	Imported    []ImportedInstruction
+	References  []InstructionReference
 	DisplayRoot string
 }
 
@@ -52,7 +52,7 @@ func GenerateWorkspaceInstructions(workspaceName, purpose string, repos []Instru
 			return WorkspaceInstructions{}, err
 		}
 
-		imported, err := findImportedInstructions(absoluteRoot)
+		references, err := findInstructionReferences(absoluteRoot)
 		if err != nil {
 			return WorkspaceInstructions{}, err
 		}
@@ -66,7 +66,7 @@ func GenerateWorkspaceInstructions(workspaceName, purpose string, repos []Instru
 			Root:        absoluteRoot,
 			DisplayRoot: filepath.ToSlash(absoluteRoot),
 			Detection:   detection,
-			Imported:    imported,
+			References:  references,
 		})
 	}
 
@@ -81,6 +81,15 @@ func GenerateWorkspaceInstructions(workspaceName, purpose string, repos []Instru
 		Tree:          tree,
 		Repos:         instructionRepos,
 	}, nil
+}
+
+func BuildWorkspaceInstructionContent(workspaceName, purpose string, repos []InstructionRepo) (string, error) {
+	instructions, err := GenerateWorkspaceInstructions(workspaceName, purpose, repos)
+	if err != nil {
+		return "", err
+	}
+
+	return RenderWorkspaceInstructions(instructions), nil
 }
 
 func RenderWorkspaceInstructions(instructions WorkspaceInstructions) string {
@@ -121,34 +130,27 @@ func RenderWorkspaceInstructions(instructions WorkspaceInstructions) string {
 	builder.WriteString(instructions.Tree)
 	builder.WriteString("```\n\n")
 
-	builder.WriteString("## Repo-Specific Imported Instructions\n\n")
-	if !hasImportedInstructions(instructions.Repos) {
-		builder.WriteString("No repo-specific `CLAUDE.md` or `AGENTS.md` files were found in linked repositories.\n\n")
+	builder.WriteString("## Repo Instruction References\n\n")
+	if !hasInstructionReferences(instructions.Repos) {
+		builder.WriteString("No repo-specific instruction files were found in linked repositories.\n\n")
 	} else {
 		for _, repo := range instructions.Repos {
 			builder.WriteString("### Repo: `")
 			builder.WriteString(repo.Name)
 			builder.WriteString("`\n\n")
-			builder.WriteString("This section applies when working in linked repo `")
-			builder.WriteString(repo.Name)
-			builder.WriteString("`.\n\n")
+			builder.WriteString("This section lists instruction file references only. Contents are not duplicated here.\n\n")
 
-			if len(repo.Imported) == 0 {
+			if len(repo.References) == 0 {
 				builder.WriteString("No repo-specific instruction files were found for this repo.\n\n")
 				continue
 			}
 
-			for _, imported := range repo.Imported {
-				builder.WriteString("#### Source: `")
-				builder.WriteString(imported.Path)
-				builder.WriteString("`\n\n")
-				normalizedContent := normalizeImportedInstructionMarkdown(imported.Content)
-				builder.WriteString(normalizedContent)
-				if !strings.HasSuffix(normalizedContent, "\n") {
-					builder.WriteString("\n")
-				}
-				builder.WriteString("\n")
+			for _, reference := range repo.References {
+				builder.WriteString("- `")
+				builder.WriteString(reference.Path)
+				builder.WriteString("`\n")
 			}
+			builder.WriteString("\n")
 		}
 	}
 
@@ -169,9 +171,9 @@ func formatRepoLabel(detection RepoDetection) string {
 	return label
 }
 
-func hasImportedInstructions(repos []WorkspaceInstructionRepo) bool {
+func hasInstructionReferences(repos []WorkspaceInstructionRepo) bool {
 	for _, repo := range repos {
-		if len(repo.Imported) > 0 {
+		if len(repo.References) > 0 {
 			return true
 		}
 	}
@@ -179,70 +181,68 @@ func hasImportedInstructions(repos []WorkspaceInstructionRepo) bool {
 	return false
 }
 
-func findImportedInstructions(repoRoot string) ([]ImportedInstruction, error) {
-	imported := make([]ImportedInstruction, 0, 2)
-	for _, relativePath := range []string{WorkspaceAgentsFilePath, WorkspaceClaudeFilePath} {
-		path := filepath.Join(repoRoot, filepath.FromSlash(relativePath))
-		info, err := os.Stat(path)
-		if err != nil {
-			if os.IsNotExist(err) {
+func findInstructionReferences(repoRoot string) ([]InstructionReference, error) {
+	references := make([]InstructionReference, 0, 3)
+
+	if err := collectInstructionReferences(repoRoot, repoRoot, &references); err != nil {
+		return nil, err
+	}
+
+	sort.Slice(references, func(i, j int) bool {
+		return references[i].Path < references[j].Path
+	})
+
+	return references, nil
+}
+
+func collectInstructionReferences(repoRoot, currentDir string, references *[]InstructionReference) error {
+	entries, err := os.ReadDir(currentDir)
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	for _, entry := range entries {
+		path := filepath.Join(currentDir, entry.Name())
+		if entry.IsDir() {
+			if entry.Name() == ".git" {
 				continue
 			}
-			return nil, err
-		}
-		if info.IsDir() {
+			if err := collectInstructionReferences(repoRoot, path, references); err != nil {
+				return err
+			}
 			continue
 		}
 
-		content, err := os.ReadFile(path)
+		relativePath, err := filepath.Rel(repoRoot, path)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		relativePath = filepath.ToSlash(relativePath)
+		if !isWorkspaceInstructionReferencePath(relativePath) {
+			continue
 		}
 
-		imported = append(imported, ImportedInstruction{
-			Path:    relativePath,
-			Content: string(content),
-		})
+		*references = append(*references, InstructionReference{Path: relativePath})
 	}
 
-	return imported, nil
+	return nil
 }
 
-func normalizeImportedInstructionMarkdown(content string) string {
-	lines := strings.Split(content, "\n")
-	for index, line := range lines {
-		lines[index] = demoteMarkdownHeader(line)
+func isWorkspaceInstructionReferencePath(relativePath string) bool {
+	switch {
+	case relativePath == ".github/copilot-instructions.md":
+		return true
+	case filepath.Base(relativePath) == WorkspaceAgentsFilePath:
+		return true
+	case filepath.Base(relativePath) == WorkspaceClaudeFilePath:
+		return true
+	default:
+		return false
 	}
-
-	return strings.Join(lines, "\n")
-}
-
-func demoteMarkdownHeader(line string) string {
-	if line == "" {
-		return line
-	}
-
-	trimmed := strings.TrimLeft(line, " ")
-	indentWidth := len(line) - len(trimmed)
-	if trimmed == "" || !strings.HasPrefix(trimmed, "#") {
-		return line
-	}
-
-	headerWidth := 0
-	for headerWidth < len(trimmed) && trimmed[headerWidth] == '#' {
-		headerWidth++
-	}
-
-	if headerWidth == 0 || headerWidth >= len(trimmed) || trimmed[headerWidth] != ' ' {
-		return line
-	}
-
-	newHeaderWidth := headerWidth
-	if newHeaderWidth < 6 {
-		newHeaderWidth++
-	}
-
-	return line[:indentWidth] + strings.Repeat("#", newHeaderWidth) + trimmed[headerWidth:]
 }
 
 func WriteWorkspaceInstructionFiles(root string, content string) ([]string, error) {
