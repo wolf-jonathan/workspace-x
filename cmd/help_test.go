@@ -38,6 +38,7 @@ func TestCommandHelpShowsExamples(t *testing.T) {
 				"Examples:",
 				"wsx add C:\\src\\repos\\auth-service",
 				"wsx add ${WORK_REPOS}\\payments-api --as payments",
+				"wsx add --favorite AUTH_SERVICE",
 			},
 		},
 		{

@@ -147,6 +147,7 @@ Use it when:
 Expectations:
 
 - Accepts absolute or parameterized paths
+- Also supports `--favorite <NAME>` for adding a saved global favorite directly
 - Rejects circular references and name conflicts
 - Creates a runtime link without rewriting portable config into machine-specific
   absolute paths
@@ -359,6 +360,8 @@ Expectation:
 
 - Imported favorites become normal workspace env entries available to later
   wsx commands
+- Import is optional; `wsx add --favorite <NAME>` can use the global favorite
+  directly without importing it into `.wsx.env`
 
 ### `wsx skill-install [--scope local|global]`
 

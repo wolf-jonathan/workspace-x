@@ -92,7 +92,18 @@ func lookupEnvValue(name string, env EnvVars) (string, bool) {
 	}
 
 	value, ok := os.LookupEnv(name)
-	return value, ok
+	if ok {
+		return value, ok
+	}
+
+	store, err := LoadFavoriteStore()
+	if err == nil {
+		if favorite, ok := store.Get(name); ok {
+			return favorite.Path, true
+		}
+	}
+
+	return "", false
 }
 
 func normalizeLiteralPathFragment(fragment string) string {

@@ -18,13 +18,24 @@ const workspaceInstructionFilesStaleWarning = "Warning: workspace instruction fi
 
 func newAddCommand() *cobra.Command {
 	var linkName string
+	var favoriteName string
 
 	command := &cobra.Command{
 		Use:   "add <path>",
 		Short: "Add a linked repository to the current workspace",
-		Args:  cobra.ExactArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(favoriteName) != "" {
+				if len(args) != 0 {
+					return errors.New("favorite mode does not accept a path argument")
+				}
+				return nil
+			}
+
+			return cobra.ExactArgs(1)(cmd, args)
+		},
 		Example: `wsx add C:\src\repos\auth-service
-wsx add ${WORK_REPOS}\payments-api --as payments`,
+wsx add ${WORK_REPOS}\payments-api --as payments
+wsx add --favorite AUTH_SERVICE`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := workspace.LoadConfig("")
 			if err != nil {
@@ -36,9 +47,24 @@ wsx add ${WORK_REPOS}\payments-api --as payments`,
 				return err
 			}
 
-			inputPath := strings.TrimSpace(args[0])
-			if inputPath == "" {
-				return errors.New("path cannot be empty")
+			inputPath := ""
+			if strings.TrimSpace(favoriteName) != "" {
+				store, err := loadFavoriteStoreOrEmpty()
+				if err != nil {
+					return err
+				}
+
+				favorite, ok := store.Get(favoriteName)
+				if !ok {
+					return fmt.Errorf("favorite %q not found", favoriteName)
+				}
+
+				inputPath = fmt.Sprintf("${%s}", favorite.Name)
+			} else {
+				inputPath = strings.TrimSpace(args[0])
+				if inputPath == "" {
+					return errors.New("path cannot be empty")
+				}
 			}
 
 			resolvedPath, err := resolveAddInputPath(inputPath, env)
@@ -99,6 +125,7 @@ wsx add ${WORK_REPOS}\payments-api --as payments`,
 	}
 
 	command.Flags().StringVar(&linkName, "as", "", "Name to use for the workspace link")
+	command.Flags().StringVar(&favoriteName, "favorite", "", "Favorite name to add instead of providing a path")
 	return command
 }
 

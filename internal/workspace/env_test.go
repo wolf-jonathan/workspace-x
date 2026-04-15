@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
 )
@@ -75,6 +76,35 @@ func TestResolvePathFallsBackToProcessEnv(t *testing.T) {
 		want = filepath.Clean(`D:\projects/side-project`)
 	}
 
+	if resolved != want {
+		t.Fatalf("resolved path = %q, want %q", resolved, want)
+	}
+}
+
+func TestResolvePathFallsBackToGlobalFavorites(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+	t.Setenv("APPDATA", configDir)
+	t.Setenv("HOME", configDir)
+	t.Setenv("USERPROFILE", configDir)
+
+	err := workspace.SaveFavoriteStore(workspace.FavoriteStore{
+		Favorites: []workspace.Favorite{{
+			Name:  "AUTH_SERVICE",
+			Path:  `D:\repos\auth-service`,
+			Added: time.Now().UTC(),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("SaveFavoriteStore() error = %v", err)
+	}
+
+	resolved, err := workspace.ResolvePath(`${AUTH_SERVICE}`, nil)
+	if err != nil {
+		t.Fatalf("ResolvePath() error = %v", err)
+	}
+
+	want := filepath.Clean(`D:\repos\auth-service`)
 	if resolved != want {
 		t.Fatalf("resolved path = %q, want %q", resolved, want)
 	}

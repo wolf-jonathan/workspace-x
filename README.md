@@ -153,6 +153,7 @@ Add repositories:
 wsx add ${WORK_REPOS}\auth-service
 wsx add ${WORK_REPOS}\payments-api
 wsx add ${PERSONAL_REPOS}\frontend --as frontend
+wsx add --favorite AUTH_SERVICE
 ```
 
 Inspect the workspace:
@@ -186,7 +187,7 @@ wsx exec -- git status --short --branch
 | `wsx favorite add <path> --name <NAME>` | Saves a reusable global path favorite |
 | `wsx favorite list [--json]` | Lists saved global path favorites |
 | `wsx favorite remove <NAME>` | Removes a saved global path favorite |
-| `wsx favorite import <NAME>...` | Imports saved favorites into the current workspace `.wsx.env` |
+| `wsx favorite import <NAME>...` | Imports saved favorites into the current workspace `.wsx.env` when you explicitly want local env entries |
 
 ### Git and execution commands
 
@@ -248,6 +249,7 @@ Save a favorite:
 ```powershell
 wsx favorite add C:\Users\you\src --name WORK_REPOS
 wsx favorite add C:\Users\you\projects --name PERSONAL_REPOS
+wsx favorite add C:\Users\you\src\auth-service --name AUTH_SERVICE
 ```
 
 List favorites:
@@ -257,15 +259,25 @@ wsx favorite list
 wsx favorite list --json
 ```
 
-Import favorites into the current workspace `.wsx.env`:
+Add a favorite directly to the workspace:
+
+```powershell
+wsx add --favorite AUTH_SERVICE
+```
+
+`wsx add --favorite <NAME>` stores the workspace ref as `${NAME}` and later wsx
+commands resolve that placeholder from the global favorites store automatically.
+
+Import favorites into the current workspace `.wsx.env` only when you explicitly
+want local env entries:
 
 ```powershell
 wsx favorite import WORK_REPOS
 wsx favorite import WORK_REPOS PERSONAL_REPOS
 ```
 
-Imported favorites become normal workspace env entries, so later commands can
-use `${WORK_REPOS}` or `${PERSONAL_REPOS}` in the usual way.
+Imported favorites become normal workspace env entries, which override any
+global favorite with the same name for that workspace.
 
 ---
 

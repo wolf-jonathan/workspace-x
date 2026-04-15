@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wolf-jonathan/workspace-x/cmd"
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
@@ -138,6 +139,91 @@ func TestAddSupportsParameterizedInputAndCustomName(t *testing.T) {
 
 	if !sameDirectoryTarget(t, resolved, target) {
 		t.Fatalf("resolved link target = %q, want same target as %q", resolved, target)
+	}
+}
+
+func TestAddSupportsFavoriteNameWithoutWorkspaceImport(t *testing.T) {
+	root := t.TempDir()
+	chdirForTest(t, root)
+
+	mustInitWorkspace(t, root, "payments-debug")
+
+	configDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+	t.Setenv("APPDATA", configDir)
+	t.Setenv("HOME", configDir)
+	t.Setenv("USERPROFILE", configDir)
+
+	target := filepath.Join(t.TempDir(), "auth-service")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatalf("MkdirAll(target) error = %v", err)
+	}
+
+	err := workspace.SaveFavoriteStore(workspace.FavoriteStore{
+		Favorites: []workspace.Favorite{{
+			Name:  "AUTH_SERVICE",
+			Path:  target,
+			Added: time.Now().UTC(),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("SaveFavoriteStore() error = %v", err)
+	}
+
+	command := cmd.NewRootCommand()
+	command.SetArgs([]string{"add", "--favorite", "AUTH_SERVICE"})
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	command.SetOut(stdout)
+	command.SetErr(stderr)
+
+	if err := cmd.ExecuteCommand(command); err != nil {
+		t.Fatalf("ExecuteCommand() error = %v", err)
+	}
+
+	loaded, err := workspace.LoadConfig(root)
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+
+	if len(loaded.Config.Refs) != 1 {
+		t.Fatalf("refs length = %d, want 1", len(loaded.Config.Refs))
+	}
+
+	ref := loaded.Config.Refs[0]
+	if ref.Name != "auth-service" {
+		t.Fatalf("ref.Name = %q, want auth-service", ref.Name)
+	}
+	if ref.Path != "${AUTH_SERVICE}" {
+		t.Fatalf("ref.Path = %q, want ${AUTH_SERVICE}", ref.Path)
+	}
+
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `Added "auth-service" -> ${AUTH_SERVICE}`) {
+		t.Fatalf("stdout = %q, want favorite-based add confirmation", stdout.String())
+	}
+}
+
+func TestAddRejectsPathArgumentWhenUsingFavoriteMode(t *testing.T) {
+	root := t.TempDir()
+	chdirForTest(t, root)
+
+	mustInitWorkspace(t, root, "payments-debug")
+
+	command := cmd.NewRootCommand()
+	command.SetArgs([]string{"add", "--favorite", "AUTH_SERVICE", `C:\repos\auth-service`})
+	command.SetOut(new(bytes.Buffer))
+	command.SetErr(new(bytes.Buffer))
+
+	err := cmd.ExecuteCommand(command)
+	if err == nil {
+		t.Fatal("ExecuteCommand() error = nil, want favorite argument validation error")
+	}
+
+	if !strings.Contains(err.Error(), "favorite mode does not accept a path argument") {
+		t.Fatalf("error = %q, want favorite argument validation error", err.Error())
 	}
 }
 
