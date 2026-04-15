@@ -48,7 +48,7 @@ on a multi-repo workspace built from links to existing local repositories.
 2. Use wsx list --json to inspect linked repos and resolved paths.
 3. Use wsx tree for workspace discovery.
 4. Use wsx grep to narrow to exact files or symbols before reading content.
-5. Use wsx status --json, wsx fetch --json, or wsx exec --json -- ... for structured multi-repo automation.
+5. Use wsx status --json --parallel, wsx fetch --json, or wsx exec --json -- ... for structured multi-repo automation.
 6. Use wsx prompt only when the user explicitly needs a reusable workspace prompt.
 
 ## Command guidance

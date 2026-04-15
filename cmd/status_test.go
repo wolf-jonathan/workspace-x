@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	wsxgit "github.com/wolf-jonathan/workspace-x/internal/git"
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
@@ -38,10 +40,10 @@ func TestStatusShowsPerRepoSummariesAndReturnsErrorForDirtyRepos(t *testing.T) {
 	stub := &stubStatusClient{
 		results: map[string]stubStatusResult{
 			filepath.Join(reposRoot, "auth-service"): {
-				result: wsxgit.CommandResult{Stdout: "## main\n M app.go\n?? notes.txt\n"},
+				result: wsxgit.CommandResult{Stdout: "## main...origin/main [ahead 1]\n M app.go\n?? notes.txt\n"},
 			},
 			filepath.Join(reposRoot, "payments-api"): {
-				result: wsxgit.CommandResult{Stdout: "## main\n"},
+				result: wsxgit.CommandResult{Stdout: "## main...origin/main\n"},
 			},
 			filepath.Join(reposRoot, "frontend"): {
 				result: wsxgit.CommandResult{
@@ -70,9 +72,9 @@ func TestStatusShowsPerRepoSummariesAndReturnsErrorForDirtyRepos(t *testing.T) {
 	output := stdout.String()
 	for _, snippet := range []string{
 		"[auth-service]",
-		"1 file changed, 1 untracked file",
+		"main...origin/main [ahead 1]; 1 file changed, 1 untracked file",
 		"[payments-api]",
-		"clean",
+		"main...origin/main; clean",
 		"[frontend]",
 		"error: fatal: not a git repository",
 	} {
@@ -111,7 +113,7 @@ func TestStatusJSONIncludesResolvedPathsAndExitCodes(t *testing.T) {
 		results: map[string]stubStatusResult{
 			target: {
 				result: wsxgit.CommandResult{
-					Stdout:   "## main\n M app.go\n",
+					Stdout:   "## feature/payments...origin/feature/payments [ahead 2, behind 1]\n M app.go\n",
 					ExitCode: 0,
 				},
 			},
@@ -151,8 +153,8 @@ func TestStatusJSONIncludesResolvedPathsAndExitCodes(t *testing.T) {
 	if item.ResolvedPath != target {
 		t.Fatalf("item.ResolvedPath = %q, want %q", item.ResolvedPath, target)
 	}
-	if item.Summary != "1 file changed" {
-		t.Fatalf("item.Summary = %q, want 1 file changed", item.Summary)
+	if item.Summary != "feature/payments...origin/feature/payments [ahead 2, behind 1]; 1 file changed" {
+		t.Fatalf("item.Summary = %q, want branch summary plus changes", item.Summary)
 	}
 	if item.Clean {
 		t.Fatal("item.Clean = true, want false")
@@ -186,7 +188,7 @@ func TestStatusSucceedsWhenAllReposAreClean(t *testing.T) {
 	stub := &stubStatusClient{
 		results: map[string]stubStatusResult{
 			target: {
-				result: wsxgit.CommandResult{Stdout: "## main\n"},
+				result: wsxgit.CommandResult{Stdout: "## HEAD (detached at a1b2c3d)\n"},
 			},
 		},
 	}
@@ -204,14 +206,76 @@ func TestStatusSucceedsWhenAllReposAreClean(t *testing.T) {
 		t.Fatalf("ExecuteCommand() error = %v", err)
 	}
 
-	if !strings.Contains(stdout.String(), "clean") {
-		t.Fatalf("status output = %q, want clean summary", stdout.String())
+	if !strings.Contains(stdout.String(), "HEAD (detached at a1b2c3d); clean") {
+		t.Fatalf("status output = %q, want detached clean summary", stdout.String())
+	}
+}
+
+func TestStatusParallelPreservesWorkspaceOrder(t *testing.T) {
+	root := t.TempDir()
+	chdirForStatusTest(t, root)
+	writeStatusWorkspace(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+			{Name: "payments-api", Path: `${WORK_REPOS}/payments-api`},
+		},
+	})
+
+	reposRoot := filepath.Join(t.TempDir(), "repos")
+	for _, name := range []string{"auth-service", "payments-api"} {
+		if err := os.MkdirAll(filepath.Join(reposRoot, name), 0o755); err != nil {
+			t.Fatalf("MkdirAll(%s) error = %v", name, err)
+		}
+	}
+	writeStatusEnv(t, root, reposRoot)
+
+	stub := newBlockingStatusClient()
+	stub.results[filepath.Join(reposRoot, "auth-service")] = stubStatusResult{
+		result: wsxgit.CommandResult{Stdout: "## main...origin/main\n"},
+	}
+	stub.results[filepath.Join(reposRoot, "payments-api")] = stubStatusResult{
+		result: wsxgit.CommandResult{Stdout: "## release...origin/release [behind 1]\n M api.go\n"},
+	}
+
+	restore := swapStatusGitClient(stub)
+	defer restore()
+
+	stdout := new(bytes.Buffer)
+	command := NewRootCommand()
+	command.SetArgs([]string{"status", "--parallel"})
+	command.SetOut(stdout)
+	command.SetErr(new(bytes.Buffer))
+
+	done := make(chan error, 1)
+	go func() {
+		done <- ExecuteCommand(command)
+	}()
+
+	stub.waitForCalls(t, 2)
+	stub.releaseAll()
+
+	if err := <-done; err == nil {
+		t.Fatal("ExecuteCommand() error = nil, want dirty status error")
+	}
+
+	output := stdout.String()
+	first := strings.Index(output, "[auth-service]")
+	second := strings.Index(output, "[payments-api]")
+	if first == -1 || second == -1 {
+		t.Fatalf("status output = %q, want both repo headers", output)
+	}
+	if first > second {
+		t.Fatalf("status output = %q, want workspace order preserved", output)
 	}
 }
 
 type stubStatusClient struct {
 	results map[string]stubStatusResult
 	calls   []string
+	mu      sync.Mutex
+	blockCh chan struct{}
 }
 
 type stubStatusResult struct {
@@ -220,7 +284,14 @@ type stubStatusResult struct {
 }
 
 func (s *stubStatusClient) Status(path string) (wsxgit.CommandResult, error) {
+	s.mu.Lock()
 	s.calls = append(s.calls, path)
+	blockCh := s.blockCh
+	s.mu.Unlock()
+
+	if blockCh != nil {
+		<-blockCh
+	}
 
 	result, ok := s.results[path]
 	if !ok {
@@ -228,6 +299,42 @@ func (s *stubStatusClient) Status(path string) (wsxgit.CommandResult, error) {
 	}
 
 	return result.result, result.err
+}
+
+func newBlockingStatusClient() *stubStatusClient {
+	return &stubStatusClient{
+		results: make(map[string]stubStatusResult),
+		blockCh: make(chan struct{}),
+	}
+}
+
+func (s *stubStatusClient) waitForCalls(t *testing.T, want int) {
+	t.Helper()
+
+	for i := 0; i < 100; i++ {
+		s.mu.Lock()
+		got := len(s.calls)
+		s.mu.Unlock()
+		if got >= want {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t.Fatalf("len(calls) = %d, want at least %d", len(s.calls), want)
+}
+
+func (s *stubStatusClient) releaseAll() {
+	s.mu.Lock()
+	blockCh := s.blockCh
+	s.blockCh = nil
+	s.mu.Unlock()
+
+	if blockCh != nil {
+		close(blockCh)
+	}
 }
 
 func swapStatusGitClient(client gitStatusClient) func() {

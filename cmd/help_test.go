@@ -51,6 +51,15 @@ func TestCommandHelpShowsExamples(t *testing.T) {
 			},
 		},
 		{
+			name: "status",
+			args: []string{"status", "--help"},
+			snippets: []string{
+				"Examples:",
+				"wsx status",
+				"wsx status --parallel --json",
+			},
+		},
+		{
 			name: "tree",
 			args: []string{"tree", "--help"},
 			snippets: []string{

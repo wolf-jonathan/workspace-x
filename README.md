@@ -193,7 +193,7 @@ wsx exec -- git status --short --branch
 
 | Command | What It Does |
 |---------|--------------|
-| `wsx status [--json]` | Runs `git status --short --branch` across linked repositories |
+| `wsx status [--json] [--parallel]` | Runs `git status --short --branch` across linked repositories |
 | `wsx fetch [--json] [--parallel]` | Runs `git fetch --prune` across linked repositories |
 | `wsx exec [--json] [--parallel] -- <cmd>` | Runs one argv-forwarded command across linked repositories |
 
@@ -201,6 +201,7 @@ wsx exec -- git status --short --branch
 shell operators, call a shell explicitly:
 
 ```powershell
+wsx status --parallel --json
 wsx exec -- git checkout main
 wsx exec --parallel -- npm run lint
 wsx exec -- powershell -Command "git fetch; git status"
@@ -231,7 +232,7 @@ Use the JSON flags when another tool or agent needs structured output:
 ```powershell
 wsx doctor --json
 wsx list --json
-wsx status --json
+wsx status --json --parallel
 wsx fetch --json --parallel
 wsx exec --json -- go test ./...
 wsx grep --json "TODO"

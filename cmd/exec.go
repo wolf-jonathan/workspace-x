@@ -9,9 +9,9 @@ import (
 	"sync"
 	"text/tabwriter"
 
+	"github.com/spf13/cobra"
 	wsxgit "github.com/wolf-jonathan/workspace-x/internal/git"
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
-	"github.com/spf13/cobra"
 )
 
 type commandRunner interface {
@@ -73,7 +73,7 @@ wsx exec --parallel -- npm test`,
 
 			hasFailures := false
 			for _, item := range items {
-				if item.Error != "" {
+				if execItemFailed(item) {
 					hasFailures = true
 					break
 				}
@@ -196,6 +196,10 @@ func combinedExecOutput(item execItem) string {
 		}
 	}
 
+	if item.ExitCode != 0 {
+		lines = append(lines, fmt.Sprintf("command failed with exit code %d", item.ExitCode))
+	}
+
 	if len(lines) > 0 {
 		return strings.Join(lines, "\n")
 	}
@@ -205,6 +209,10 @@ func combinedExecOutput(item execItem) string {
 	}
 
 	return "(no output)"
+}
+
+func execItemFailed(item execItem) bool {
+	return item.Error != "" || item.ExitCode != 0
 }
 
 func resolveExecPath(ref workspace.Ref, env workspace.EnvVars) (string, error) {

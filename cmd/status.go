@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
+	"github.com/spf13/cobra"
 	wsxgit "github.com/wolf-jonathan/workspace-x/internal/git"
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
-	"github.com/spf13/cobra"
 )
 
 const statusSummaryClean = "clean"
@@ -43,11 +44,14 @@ func (e *statusCommandError) Error() string {
 
 func newStatusCommand() *cobra.Command {
 	var jsonOutput bool
+	var parallel bool
 
 	command := &cobra.Command{
 		Use:   "status",
 		Short: "Run git status across linked repositories",
 		Args:  cobra.NoArgs,
+		Example: `wsx status
+wsx status --parallel --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := workspace.LoadConfig("")
 			if err != nil {
@@ -60,47 +64,20 @@ func newStatusCommand() *cobra.Command {
 			}
 
 			client := newStatusGitClient()
-			items := make([]statusItem, 0, len(loaded.Config.Refs))
+			items := make([]statusItem, len(loaded.Config.Refs))
+
+			if parallel {
+				runStatusesInParallel(loaded.Config.Refs, env, client, items)
+			} else {
+				runStatusesSequentially(loaded.Config.Refs, env, client, items)
+			}
+
 			hasIssues := false
-
-			for _, ref := range loaded.Config.Refs {
-				item := statusItem{
-					Name:  ref.Name,
-					Path:  ref.Path,
-					Clean: false,
-				}
-
-				resolvedPath, resolveErr := resolveStatusPath(ref, env)
-				if resolveErr != nil {
-					item.Error = resolveErr.Error()
-					item.Summary = "error: " + resolveErr.Error()
-					items = append(items, item)
+			for _, item := range items {
+				if item.Error != "" || !item.Clean {
 					hasIssues = true
-					continue
+					break
 				}
-
-				item.ResolvedPath = resolvedPath
-
-				result, statusErr := client.Status(resolvedPath)
-				item.ExitCode = result.ExitCode
-				if statusErr != nil {
-					item.Error = statusErr.Error()
-					if strings.TrimSpace(result.Stderr) != "" {
-						item.Summary = "error: " + strings.TrimSpace(result.Stderr)
-					} else {
-						item.Summary = "error: " + statusErr.Error()
-					}
-					items = append(items, item)
-					hasIssues = true
-					continue
-				}
-
-				item.Summary, item.Clean = summarizeGitStatus(result.Stdout)
-				if !item.Clean {
-					hasIssues = true
-				}
-
-				items = append(items, item)
 			}
 
 			if jsonOutput {
@@ -122,17 +99,76 @@ func newStatusCommand() *cobra.Command {
 	}
 
 	command.Flags().BoolVar(&jsonOutput, "json", false, "Output repository status as JSON")
+	command.Flags().BoolVar(&parallel, "parallel", false, "Run git status in parallel across repositories")
 	return command
+}
+
+func runStatusesSequentially(refs []workspace.Ref, env workspace.EnvVars, client gitStatusClient, items []statusItem) {
+	for index, ref := range refs {
+		items[index] = statusRef(ref, env, client)
+	}
+}
+
+func runStatusesInParallel(refs []workspace.Ref, env workspace.EnvVars, client gitStatusClient, items []statusItem) {
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(len(refs))
+
+	for index, ref := range refs {
+		go func(index int, ref workspace.Ref) {
+			defer waitGroup.Done()
+			items[index] = statusRef(ref, env, client)
+		}(index, ref)
+	}
+
+	waitGroup.Wait()
+}
+
+func statusRef(ref workspace.Ref, env workspace.EnvVars, client gitStatusClient) statusItem {
+	item := statusItem{
+		Name:  ref.Name,
+		Path:  ref.Path,
+		Clean: false,
+	}
+
+	resolvedPath, resolveErr := resolveStatusPath(ref, env)
+	if resolveErr != nil {
+		item.Error = resolveErr.Error()
+		item.Summary = "error: " + resolveErr.Error()
+		return item
+	}
+
+	item.ResolvedPath = resolvedPath
+
+	result, statusErr := client.Status(resolvedPath)
+	item.ExitCode = result.ExitCode
+	if statusErr != nil {
+		item.Error = statusErr.Error()
+		if strings.TrimSpace(result.Stderr) != "" {
+			item.Summary = "error: " + strings.TrimSpace(result.Stderr)
+		} else {
+			item.Summary = "error: " + statusErr.Error()
+		}
+		return item
+	}
+
+	item.Summary, item.Clean = summarizeGitStatus(result.Stdout)
+	return item
 }
 
 func summarizeGitStatus(stdout string) (string, bool) {
 	lines := strings.Split(strings.ReplaceAll(stdout, "\r\n", "\n"), "\n")
+	branchSummary := ""
 	changed := 0
 	untracked := 0
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "##") {
+		if line == "" {
+			continue
+		}
+
+		if strings.HasPrefix(line, "##") {
+			branchSummary = strings.TrimSpace(strings.TrimPrefix(line, "##"))
 			continue
 		}
 
@@ -153,10 +189,10 @@ func summarizeGitStatus(stdout string) (string, bool) {
 	}
 
 	if len(parts) == 0 {
-		return statusSummaryClean, true
+		return formatStatusSummary(branchSummary, statusSummaryClean), true
 	}
 
-	return strings.Join(parts, ", "), false
+	return formatStatusSummary(branchSummary, strings.Join(parts, ", ")), false
 }
 
 func pluralizeStatusCount(count int, singular, plural string) string {
@@ -164,6 +200,13 @@ func pluralizeStatusCount(count int, singular, plural string) string {
 		return fmt.Sprintf("%d %s", count, singular)
 	}
 	return fmt.Sprintf("%d %s", count, plural)
+}
+
+func formatStatusSummary(branchSummary, summary string) string {
+	if branchSummary == "" {
+		return summary
+	}
+	return branchSummary + "; " + summary
 }
 
 func writeStatusJSON(cmd *cobra.Command, items []statusItem) error {

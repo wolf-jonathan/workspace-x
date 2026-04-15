@@ -76,6 +76,7 @@ func TestExecShowsGroupedOutputAndReturnsErrorForFailures(t *testing.T) {
 		"(no output)",
 		"[frontend]",
 		"fatal: bad revision 'main'",
+		"command failed with exit code 128",
 	} {
 		if !strings.Contains(output, snippet) {
 			t.Fatalf("exec output = %q, want substring %q", output, snippet)
@@ -166,6 +167,66 @@ func TestExecJSONIncludesCommandOutputAndResolvedPaths(t *testing.T) {
 	}
 	if item.Error != "" {
 		t.Fatalf("item.Error = %q, want empty", item.Error)
+	}
+}
+
+func TestExecTreatsNonZeroExitCodeAsFailureWithoutRunnerError(t *testing.T) {
+	root := t.TempDir()
+	chdirForExecTest(t, root)
+	writeExecWorkspace(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+		},
+	})
+
+	reposRoot := filepath.Join(t.TempDir(), "repos")
+	target := filepath.Join(reposRoot, "auth-service")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatalf("MkdirAll(target) error = %v", err)
+	}
+	writeExecEnv(t, root, reposRoot)
+
+	stub := &stubExecRunner{
+		results: map[string]stubExecResult{
+			target: {
+				result: wsxgit.CommandResult{
+					Stdout:   "tests failed\n",
+					ExitCode: 3,
+				},
+			},
+		},
+	}
+
+	restore := swapExecRunner(stub)
+	defer restore()
+
+	stdout := new(bytes.Buffer)
+	command := NewRootCommand()
+	command.SetArgs([]string{"exec", "--json", "--", "go", "test", "./..."})
+	command.SetOut(stdout)
+	command.SetErr(new(bytes.Buffer))
+
+	err := ExecuteCommand(command)
+	if err == nil {
+		t.Fatal("ExecuteCommand() error = nil, want exec failure")
+	}
+
+	var items []execItem
+	if decodeErr := json.Unmarshal(stdout.Bytes(), &items); decodeErr != nil {
+		t.Fatalf("json.Unmarshal() error = %v", decodeErr)
+	}
+
+	if len(items) != 1 {
+		t.Fatalf("len(items) = %d, want 1", len(items))
+	}
+
+	if items[0].ExitCode != 3 {
+		t.Fatalf("item.ExitCode = %d, want 3", items[0].ExitCode)
+	}
+	if items[0].Error != "" {
+		t.Fatalf("item.Error = %q, want empty", items[0].Error)
 	}
 }
 

@@ -200,7 +200,7 @@ Agent guidance:
 - Always prefer `wsx doctor --json`
 - Do not use `--fix` in non-interactive agent flows
 
-### `wsx status [--json]`
+### `wsx status [--json] [--parallel]`
 
 Runs `git status --short --branch` across linked repositories.
 
@@ -212,6 +212,8 @@ Use it when:
 Agent guidance:
 
 - Prefer `--json` when another tool will consume the result
+- Use `--parallel` when you want faster multi-repo status checks while keeping
+  workspace output order stable
 
 ### `wsx fetch [--json] [--parallel]`
 
@@ -396,7 +398,7 @@ Use these when another tool or agent needs structured output:
 ```powershell
 wsx doctor --json
 wsx list --json
-wsx status --json
+wsx status --json --parallel
 wsx fetch --json --parallel
 wsx exec --json -- go test ./...
 wsx grep --json "TODO"
