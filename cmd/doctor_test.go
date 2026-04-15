@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wolf-jonathan/workspace-x/internal/ai"
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
 )
 
@@ -32,6 +33,7 @@ func TestDoctorReportsHealthyWorkspace(t *testing.T) {
 	if _, err := workspace.CreateLink(target, filepath.Join(root, "auth-service")); err != nil {
 		t.Fatalf("CreateLink() error = %v", err)
 	}
+	writeDoctorInstructionFiles(t, root, buildDoctorInstructionContent(t, "payments-debug", []ai.InstructionRepo{{Name: "auth-service", Root: target}}))
 
 	restore := swapDoctorTerminalDetector(func() bool { return false })
 	defer restore()
@@ -57,10 +59,69 @@ func TestDoctorReportsHealthyWorkspace(t *testing.T) {
 		"OK  no_workspace_nesting",
 		"OK  no_nested_refs",
 		"OK  auth-service_git",
+		"OK  workspace_instruction_files",
 	} {
 		if !strings.Contains(output, snippet) {
 			t.Fatalf("doctor output = %q, want substring %q", output, snippet)
 		}
+	}
+}
+
+func TestDoctorWarnsWhenWorkspaceInstructionFilesAreMissing(t *testing.T) {
+	root := t.TempDir()
+	chdirForDoctorTest(t, root)
+	writeDoctorWorkspaceConfig(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+		},
+	})
+
+	reposRoot := filepath.Join(t.TempDir(), "repos")
+	target := filepath.Join(reposRoot, "auth-service")
+	if err := os.MkdirAll(filepath.Join(target, ".git"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(.git) error = %v", err)
+	}
+	writeDoctorEnvFile(t, root, "WORK_REPOS="+reposRoot+"\n")
+	if _, err := workspace.CreateLink(target, filepath.Join(root, "auth-service")); err != nil {
+		t.Fatalf("CreateLink() error = %v", err)
+	}
+
+	restore := swapDoctorTerminalDetector(func() bool { return false })
+	defer restore()
+
+	stdout := new(bytes.Buffer)
+	command := NewRootCommand()
+	command.SetArgs([]string{"doctor", "--json"})
+	command.SetOut(stdout)
+	command.SetErr(new(bytes.Buffer))
+
+	if err := ExecuteCommand(command); err != nil {
+		t.Fatalf("ExecuteCommand() error = %v", err)
+	}
+
+	var result doctorReport
+	if decodeErr := json.Unmarshal(stdout.Bytes(), &result); decodeErr != nil {
+		t.Fatalf("json.Unmarshal() error = %v", decodeErr)
+	}
+
+	if !result.Healthy {
+		t.Fatal("result.Healthy = false, want true")
+	}
+
+	check, ok := findDoctorCheck(result.Checks, "workspace_instruction_files")
+	if !ok {
+		t.Fatalf("result.Checks = %+v, want workspace_instruction_files warning", result.Checks)
+	}
+	if check.Status != doctorStatusWarn {
+		t.Fatalf("workspace_instruction_files status = %q, want %q", check.Status, doctorStatusWarn)
+	}
+	if !strings.Contains(check.Message, "missing") {
+		t.Fatalf("workspace_instruction_files message = %q, want missing warning", check.Message)
+	}
+	if !strings.Contains(check.Message, "AGENTS.md") || !strings.Contains(check.Message, "CLAUDE.md") {
+		t.Fatalf("workspace_instruction_files message = %q, want both file names", check.Message)
 	}
 }
 
@@ -115,6 +176,7 @@ func TestDoctorJSONReportsUnresolvedVariableInNonInteractiveMode(t *testing.T) {
 	if !foundVarError {
 		t.Fatalf("result.Checks = %+v, want var_WORK_REPOS error", result.Checks)
 	}
+	assertDoctorCheckAbsent(t, result.Checks, "workspace_instruction_files")
 }
 
 func TestDoctorFixRequiresInteractiveTerminal(t *testing.T) {
@@ -199,6 +261,7 @@ func TestDoctorInteractiveModeResolvesVariablesAndWritesEnvFile(t *testing.T) {
 	if _, err := workspace.CreateLink(target, filepath.Join(root, "auth-service")); err != nil {
 		t.Fatalf("CreateLink() error = %v", err)
 	}
+	writeDoctorInstructionFiles(t, root, buildDoctorInstructionContent(t, "payments-debug", []ai.InstructionRepo{{Name: "auth-service", Root: target}}))
 
 	restore := swapDoctorTerminalDetector(func() bool { return true })
 	defer restore()
@@ -235,6 +298,211 @@ func TestDoctorInteractiveModeResolvesVariablesAndWritesEnvFile(t *testing.T) {
 	}
 }
 
+func TestDoctorWarnsWhenWorkspaceInstructionFilesAreStaleAfterAdd(t *testing.T) {
+	root := t.TempDir()
+	chdirForDoctorTest(t, root)
+	writeDoctorWorkspaceConfig(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+		},
+	})
+
+	reposRoot := filepath.Join(t.TempDir(), "repos")
+	authTarget := filepath.Join(reposRoot, "auth-service")
+	frontendTarget := filepath.Join(reposRoot, "frontend")
+	for _, dir := range []string{authTarget, frontendTarget} {
+		if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o755); err != nil {
+			t.Fatalf("MkdirAll(.git) error = %v", err)
+		}
+	}
+	writeDoctorEnvFile(t, root, "WORK_REPOS="+reposRoot+"\n")
+	if _, err := workspace.CreateLink(authTarget, filepath.Join(root, "auth-service")); err != nil {
+		t.Fatalf("CreateLink(auth-service) error = %v", err)
+	}
+	content := buildDoctorInstructionContent(t, "payments-debug", []ai.InstructionRepo{{Name: "auth-service", Root: authTarget}})
+	writeDoctorInstructionFiles(t, root, content)
+
+	cfg := workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+			{Name: "frontend", Path: `${WORK_REPOS}/frontend`},
+		},
+	}
+	writeDoctorWorkspaceConfig(t, root, cfg)
+	if _, err := workspace.CreateLink(frontendTarget, filepath.Join(root, "frontend")); err != nil {
+		t.Fatalf("CreateLink(frontend) error = %v", err)
+	}
+
+	restore := swapDoctorTerminalDetector(func() bool { return false })
+	defer restore()
+
+	stdout := new(bytes.Buffer)
+	command := NewRootCommand()
+	command.SetArgs([]string{"doctor", "--json"})
+	command.SetOut(stdout)
+	command.SetErr(new(bytes.Buffer))
+
+	if err := ExecuteCommand(command); err != nil {
+		t.Fatalf("ExecuteCommand() error = %v", err)
+	}
+
+	var result doctorReport
+	if decodeErr := json.Unmarshal(stdout.Bytes(), &result); decodeErr != nil {
+		t.Fatalf("json.Unmarshal() error = %v", decodeErr)
+	}
+
+	check, ok := findDoctorCheck(result.Checks, "workspace_instruction_files")
+	if !ok {
+		t.Fatalf("result.Checks = %+v, want workspace_instruction_files warning", result.Checks)
+	}
+	if check.Status != doctorStatusWarn {
+		t.Fatalf("workspace_instruction_files status = %q, want %q", check.Status, doctorStatusWarn)
+	}
+	if !strings.Contains(check.Message, "stale") {
+		t.Fatalf("workspace_instruction_files message = %q, want stale warning", check.Message)
+	}
+}
+
+func TestDoctorWarnsWhenWorkspaceInstructionFilesAreStaleAfterRemove(t *testing.T) {
+	root := t.TempDir()
+	chdirForDoctorTest(t, root)
+	writeDoctorWorkspaceConfig(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+			{Name: "frontend", Path: `${WORK_REPOS}/frontend`},
+		},
+	})
+
+	reposRoot := filepath.Join(t.TempDir(), "repos")
+	authTarget := filepath.Join(reposRoot, "auth-service")
+	frontendTarget := filepath.Join(reposRoot, "frontend")
+	for _, dir := range []string{authTarget, frontendTarget} {
+		if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o755); err != nil {
+			t.Fatalf("MkdirAll(.git) error = %v", err)
+		}
+	}
+	writeDoctorEnvFile(t, root, "WORK_REPOS="+reposRoot+"\n")
+	for name, target := range map[string]string{
+		"auth-service": authTarget,
+		"frontend":     frontendTarget,
+	} {
+		if _, err := workspace.CreateLink(target, filepath.Join(root, name)); err != nil {
+			t.Fatalf("CreateLink(%s) error = %v", name, err)
+		}
+	}
+	content := buildDoctorInstructionContent(t, "payments-debug", []ai.InstructionRepo{
+		{Name: "auth-service", Root: authTarget},
+		{Name: "frontend", Root: frontendTarget},
+	})
+	writeDoctorInstructionFiles(t, root, content)
+
+	if err := workspace.RemoveLink(filepath.Join(root, "frontend")); err != nil {
+		t.Fatalf("RemoveLink(frontend) error = %v", err)
+	}
+	writeDoctorWorkspaceConfig(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+		},
+	})
+
+	restore := swapDoctorTerminalDetector(func() bool { return false })
+	defer restore()
+
+	stdout := new(bytes.Buffer)
+	command := NewRootCommand()
+	command.SetArgs([]string{"doctor", "--json"})
+	command.SetOut(stdout)
+	command.SetErr(new(bytes.Buffer))
+
+	if err := ExecuteCommand(command); err != nil {
+		t.Fatalf("ExecuteCommand() error = %v", err)
+	}
+
+	var result doctorReport
+	if decodeErr := json.Unmarshal(stdout.Bytes(), &result); decodeErr != nil {
+		t.Fatalf("json.Unmarshal() error = %v", decodeErr)
+	}
+
+	check, ok := findDoctorCheck(result.Checks, "workspace_instruction_files")
+	if !ok {
+		t.Fatalf("result.Checks = %+v, want workspace_instruction_files warning", result.Checks)
+	}
+	if check.Status != doctorStatusWarn {
+		t.Fatalf("workspace_instruction_files status = %q, want %q", check.Status, doctorStatusWarn)
+	}
+	if !strings.Contains(check.Message, "stale") {
+		t.Fatalf("workspace_instruction_files message = %q, want stale warning", check.Message)
+	}
+}
+
+func TestDoctorWarnsWhenWorkspaceInstructionFilesAreStaleAfterRepoInstructionChange(t *testing.T) {
+	root := t.TempDir()
+	chdirForDoctorTest(t, root)
+	writeDoctorWorkspaceConfig(t, root, workspace.Config{
+		Version: "1",
+		Name:    "payments-debug",
+		Refs: []workspace.Ref{
+			{Name: "auth-service", Path: `${WORK_REPOS}/auth-service`},
+		},
+	})
+
+	reposRoot := filepath.Join(t.TempDir(), "repos")
+	target := filepath.Join(reposRoot, "auth-service")
+	if err := os.MkdirAll(filepath.Join(target, ".git"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(.git) error = %v", err)
+	}
+	writeDoctorEnvFile(t, root, "WORK_REPOS="+reposRoot+"\n")
+	if _, err := workspace.CreateLink(target, filepath.Join(root, "auth-service")); err != nil {
+		t.Fatalf("CreateLink() error = %v", err)
+	}
+	content := buildDoctorInstructionContent(t, "payments-debug", []ai.InstructionRepo{{Name: "auth-service", Root: target}})
+	writeDoctorInstructionFiles(t, root, content)
+
+	if err := os.MkdirAll(filepath.Join(target, "docs"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(docs) error = %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "docs", "AGENTS.md"), []byte("# Docs Agents\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(docs/AGENTS.md) error = %v", err)
+	}
+
+	restore := swapDoctorTerminalDetector(func() bool { return false })
+	defer restore()
+
+	stdout := new(bytes.Buffer)
+	command := NewRootCommand()
+	command.SetArgs([]string{"doctor", "--json"})
+	command.SetOut(stdout)
+	command.SetErr(new(bytes.Buffer))
+
+	if err := ExecuteCommand(command); err != nil {
+		t.Fatalf("ExecuteCommand() error = %v", err)
+	}
+
+	var result doctorReport
+	if decodeErr := json.Unmarshal(stdout.Bytes(), &result); decodeErr != nil {
+		t.Fatalf("json.Unmarshal() error = %v", decodeErr)
+	}
+
+	check, ok := findDoctorCheck(result.Checks, "workspace_instruction_files")
+	if !ok {
+		t.Fatalf("result.Checks = %+v, want workspace_instruction_files warning", result.Checks)
+	}
+	if check.Status != doctorStatusWarn {
+		t.Fatalf("workspace_instruction_files status = %q, want %q", check.Status, doctorStatusWarn)
+	}
+	if !strings.Contains(check.Message, "stale") {
+		t.Fatalf("workspace_instruction_files message = %q, want stale warning", check.Message)
+	}
+}
+
 func TestDoctorFixJSONKeepsStdoutMachineReadable(t *testing.T) {
 	root := t.TempDir()
 	chdirForDoctorTest(t, root)
@@ -254,6 +522,7 @@ func TestDoctorFixJSONKeepsStdoutMachineReadable(t *testing.T) {
 	if _, err := workspace.CreateLink(target, filepath.Join(root, "auth-service")); err != nil {
 		t.Fatalf("CreateLink() error = %v", err)
 	}
+	writeDoctorInstructionFiles(t, root, buildDoctorInstructionContent(t, "payments-debug", []ai.InstructionRepo{{Name: "auth-service", Root: target}}))
 
 	restore := swapDoctorTerminalDetector(func() bool { return true })
 	defer restore()
@@ -340,6 +609,48 @@ func TestDoctorReportsRepointedWorkspaceLinkAsBroken(t *testing.T) {
 	}
 
 	t.Fatalf("result.Checks = %+v, want auth-service_link error", result.Checks)
+}
+
+func buildDoctorInstructionContent(t *testing.T, workspaceName string, repos []ai.InstructionRepo) string {
+	t.Helper()
+
+	content, err := ai.BuildWorkspaceInstructionContent(workspaceName, "", repos)
+	if err != nil {
+		t.Fatalf("BuildWorkspaceInstructionContent() error = %v", err)
+	}
+
+	return content
+}
+
+func writeDoctorInstructionFiles(t *testing.T, root, content string) {
+	t.Helper()
+
+	for _, relativePath := range []string{"CLAUDE.md", "AGENTS.md"} {
+		path := filepath.Join(root, relativePath)
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("WriteFile(%s) error = %v", relativePath, err)
+		}
+	}
+}
+
+func findDoctorCheck(checks []doctorCheck, name string) (doctorCheck, bool) {
+	for _, check := range checks {
+		if check.Name == name {
+			return check, true
+		}
+	}
+
+	return doctorCheck{}, false
+}
+
+func assertDoctorCheckAbsent(t *testing.T, checks []doctorCheck, name string) {
+	t.Helper()
+
+	for _, check := range checks {
+		if check.Name == name {
+			t.Fatalf("checks = %+v, did not expect %s check", checks, name)
+		}
+	}
 }
 
 func writeDoctorWorkspaceConfig(t *testing.T, root string, cfg workspace.Config) {

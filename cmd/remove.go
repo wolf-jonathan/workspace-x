@@ -51,7 +51,12 @@ func newRemoveCommand() *cobra.Command {
 			}
 
 			_, writeErr := fmt.Fprintf(cmd.OutOrStdout(), "Removed %q\n", name)
-			return writeErr
+			if writeErr != nil {
+				return writeErr
+			}
+
+			warnIfWorkspaceInstructionFilesMayBeStale(cmd, loaded.Root)
+			return nil
 		},
 	}
 }

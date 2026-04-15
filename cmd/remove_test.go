@@ -31,13 +31,32 @@ func TestRemoveDeletesConfigEntryAndWorkspaceLink(t *testing.T) {
 		t.Fatalf("add ExecuteCommand() error = %v", err)
 	}
 
+	instructionFile := filepath.Join(root, "CLAUDE.md")
+	if err := os.WriteFile(instructionFile, []byte("workspace instructions\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(CLAUDE.md) error = %v", err)
+	}
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
 	remove := cmd.NewRootCommand()
 	remove.SetArgs([]string{"remove", "auth-service"})
-	remove.SetOut(new(bytes.Buffer))
-	remove.SetErr(new(bytes.Buffer))
+	remove.SetOut(stdout)
+	remove.SetErr(stderr)
 
 	if err := cmd.ExecuteCommand(remove); err != nil {
 		t.Fatalf("remove ExecuteCommand() error = %v", err)
+	}
+
+	if !strings.Contains(stderr.String(), "Warning: workspace instruction files may be stale; run wsx agent-init") {
+		t.Fatalf("stderr = %q, want stale instruction warning", stderr.String())
+	}
+
+	content, err := os.ReadFile(instructionFile)
+	if err != nil {
+		t.Fatalf("ReadFile(CLAUDE.md) error = %v", err)
+	}
+	if string(content) != "workspace instructions\n" {
+		t.Fatalf("CLAUDE.md = %q, want unchanged content", string(content))
 	}
 
 	loaded, err := workspace.LoadConfig(root)
@@ -52,6 +71,10 @@ func TestRemoveDeletesConfigEntryAndWorkspaceLink(t *testing.T) {
 	linkPath := filepath.Join(root, "auth-service")
 	if _, err := os.Lstat(linkPath); !os.IsNotExist(err) {
 		t.Fatalf("workspace link stat error = %v, want not exists", err)
+	}
+
+	if !strings.Contains(stdout.String(), "Removed \"auth-service\"") {
+		t.Fatalf("stdout = %q, want remove confirmation", stdout.String())
 	}
 }
 
@@ -80,22 +103,40 @@ func TestRemoveLeavesTargetDirectoryUntouched(t *testing.T) {
 		t.Fatalf("add ExecuteCommand() error = %v", err)
 	}
 
+	instructionFile := filepath.Join(root, "AGENTS.md")
+	if err := os.WriteFile(instructionFile, []byte("workspace instructions\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(AGENTS.md) error = %v", err)
+	}
+
+	stderr := new(bytes.Buffer)
 	remove := cmd.NewRootCommand()
 	remove.SetArgs([]string{"remove", "payments-api"})
 	remove.SetOut(new(bytes.Buffer))
-	remove.SetErr(new(bytes.Buffer))
+	remove.SetErr(stderr)
 
 	if err := cmd.ExecuteCommand(remove); err != nil {
 		t.Fatalf("remove ExecuteCommand() error = %v", err)
 	}
 
-	content, err := os.ReadFile(marker)
+	if !strings.Contains(stderr.String(), "Warning: workspace instruction files may be stale; run wsx agent-init") {
+		t.Fatalf("stderr = %q, want stale instruction warning", stderr.String())
+	}
+
+	instructionContent, err := os.ReadFile(instructionFile)
+	if err != nil {
+		t.Fatalf("ReadFile(AGENTS.md) error = %v", err)
+	}
+	if string(instructionContent) != "workspace instructions\n" {
+		t.Fatalf("AGENTS.md = %q, want unchanged content", string(instructionContent))
+	}
+
+	markerContent, err := os.ReadFile(marker)
 	if err != nil {
 		t.Fatalf("ReadFile(marker) error = %v", err)
 	}
 
-	if string(content) != "repo stays" {
-		t.Fatalf("marker content = %q, want repo stays", string(content))
+	if string(markerContent) != "repo stays" {
+		t.Fatalf("marker content = %q, want repo stays", string(markerContent))
 	}
 }
 

@@ -26,14 +26,32 @@ func TestAddCreatesLinkAndStoresParameterizedPath(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, workspace.EnvFileName), []byte("WORK_REPOS="+reposRoot+"\n"), 0o644); err != nil {
 		t.Fatalf("WriteFile(.wsx.env) error = %v", err)
 	}
+	instructionFile := filepath.Join(root, "AGENTS.md")
+	if err := os.WriteFile(instructionFile, []byte("workspace instructions\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(AGENTS.md) error = %v", err)
+	}
 
 	command := cmd.NewRootCommand()
 	command.SetArgs([]string{"add", target})
-	command.SetOut(new(bytes.Buffer))
-	command.SetErr(new(bytes.Buffer))
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	command.SetOut(stdout)
+	command.SetErr(stderr)
 
 	if err := cmd.ExecuteCommand(command); err != nil {
 		t.Fatalf("ExecuteCommand() error = %v", err)
+	}
+
+	if !strings.Contains(stderr.String(), "Warning: workspace instruction files may be stale; run wsx agent-init") {
+		t.Fatalf("stderr = %q, want stale instruction warning", stderr.String())
+	}
+
+	content, err := os.ReadFile(instructionFile)
+	if err != nil {
+		t.Fatalf("ReadFile(AGENTS.md) error = %v", err)
+	}
+	if string(content) != "workspace instructions\n" {
+		t.Fatalf("AGENTS.md = %q, want unchanged content", string(content))
 	}
 
 	loaded, err := workspace.LoadConfig(root)
@@ -66,6 +84,10 @@ func TestAddCreatesLinkAndStoresParameterizedPath(t *testing.T) {
 
 	if !sameDirectoryTarget(t, resolved, target) {
 		t.Fatalf("resolved link target = %q, want same target as %q", resolved, target)
+	}
+
+	if !strings.Contains(stdout.String(), "Added \"auth-service\"") {
+		t.Fatalf("stdout = %q, want add confirmation", stdout.String())
 	}
 }
 

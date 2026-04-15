@@ -14,6 +14,8 @@ import (
 	"github.com/wolf-jonathan/workspace-x/internal/workspace"
 )
 
+const workspaceInstructionFilesStaleWarning = "Warning: workspace instruction files may be stale; run wsx agent-init\n"
+
 func newAddCommand() *cobra.Command {
 	var linkName string
 
@@ -21,6 +23,8 @@ func newAddCommand() *cobra.Command {
 		Use:   "add <path>",
 		Short: "Add a linked repository to the current workspace",
 		Args:  cobra.ExactArgs(1),
+		Example: `wsx add C:\src\repos\auth-service
+wsx add ${WORK_REPOS}\payments-api --as payments`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := workspace.LoadConfig("")
 			if err != nil {
@@ -85,7 +89,12 @@ func newAddCommand() *cobra.Command {
 			}
 
 			_, writeErr := fmt.Fprintf(cmd.OutOrStdout(), "Added %q -> %s (%s)\n", name, storedPath, linkType)
-			return writeErr
+			if writeErr != nil {
+				return writeErr
+			}
+
+			warnIfWorkspaceInstructionFilesMayBeStale(cmd, loaded.Root)
+			return nil
 		},
 	}
 
@@ -248,4 +257,22 @@ func samePath(left, right string) bool {
 		return strings.EqualFold(filepath.Clean(left), filepath.Clean(right))
 	}
 	return filepath.Clean(left) == filepath.Clean(right)
+}
+
+func warnIfWorkspaceInstructionFilesMayBeStale(cmd *cobra.Command, root string) {
+	if !workspaceInstructionFilesExist(root) {
+		return
+	}
+
+	_, _ = fmt.Fprint(cmd.ErrOrStderr(), workspaceInstructionFilesStaleWarning)
+}
+
+func workspaceInstructionFilesExist(root string) bool {
+	for _, name := range []string{"AGENTS.md", "CLAUDE.md"} {
+		if _, err := os.Stat(filepath.Join(root, name)); err == nil {
+			return true
+		}
+	}
+
+	return false
 }

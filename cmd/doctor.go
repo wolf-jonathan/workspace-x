@@ -13,8 +13,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/wolf-jonathan/workspace-x/internal/workspace"
 	"github.com/spf13/cobra"
+	"github.com/wolf-jonathan/workspace-x/internal/ai"
+	"github.com/wolf-jonathan/workspace-x/internal/workspace"
 )
 
 const (
@@ -67,6 +68,8 @@ func newDoctorCommand() *cobra.Command {
 		Use:   "doctor",
 		Short: "Validate workspace health and portability",
 		Args:  cobra.NoArgs,
+		Example: `wsx doctor
+wsx doctor --fix`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			isTerminal := doctorIsTerminal()
 			if fix && !isTerminal {
@@ -150,6 +153,7 @@ func runDoctor(input io.Reader, output io.Writer, interactive bool) (doctorRepor
 	checks = append(checks, checkDoctorNestedRefs(resolvedRefs)...)
 	checks = append(checks, checkDoctorLinks(loaded.Root, resolvedRefs)...)
 	checks = append(checks, checkDoctorGitRepos(resolvedRefs)...)
+	checks = append(checks, checkDoctorWorkspaceInstructionFiles(loaded, resolvedRefs)...)
 
 	report := doctorReport{
 		Healthy: true,
@@ -457,6 +461,118 @@ func checkDoctorGitRepos(refs []doctorResolvedRef) []doctorCheck {
 	}
 
 	return checks
+}
+
+func checkDoctorWorkspaceInstructionFiles(loaded *workspace.LoadedConfig, refs []doctorResolvedRef) []doctorCheck {
+	repos := make([]ai.InstructionRepo, 0, len(refs))
+	for _, ref := range refs {
+		if ref.ResolveErr != nil {
+			return nil
+		}
+
+		info, err := os.Stat(ref.ResolvedPath)
+		if err != nil || !info.IsDir() {
+			return nil
+		}
+
+		if _, err := validateWorkspaceLinkTarget(loaded.Root, ref.Ref.Name, ref.ResolvedPath); err != nil {
+			return nil
+		}
+
+		repos = append(repos, ai.InstructionRepo{
+			Name: ref.Ref.Name,
+			Root: ref.ResolvedPath,
+		})
+	}
+
+	expected, err := ai.BuildWorkspaceInstructionContent(loaded.Config.Name, "", repos)
+	if err != nil {
+		return nil
+	}
+	expected = normalizeDoctorWorkspaceInstructionContent(expected)
+
+	missing := make([]string, 0, 2)
+	stale := make([]string, 0, 2)
+	for _, filePath := range []string{ai.WorkspaceAgentsFilePath, ai.WorkspaceClaudeFilePath} {
+		fullPath := filepath.Join(loaded.Root, filepath.FromSlash(filePath))
+		content, err := os.ReadFile(fullPath)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				missing = append(missing, filePath)
+				continue
+			}
+
+			return []doctorCheck{{
+				Name:    "workspace_instruction_files",
+				Status:  doctorStatusWarn,
+				Message: fmt.Sprintf("could not verify %s: %v", filePath, err),
+			}}
+		}
+
+		actual := normalizeDoctorWorkspaceInstructionContent(string(content))
+		if actual != expected {
+			stale = append(stale, filePath)
+		}
+	}
+
+	if len(missing) == 0 && len(stale) == 0 {
+		return []doctorCheck{{
+			Name:    "workspace_instruction_files",
+			Status:  doctorStatusOK,
+			Message: "AGENTS.md and CLAUDE.md are up to date",
+		}}
+	}
+
+	parts := make([]string, 0, 2)
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		parts = append(parts, pluralizeDoctorInstructionFileList(missing, "is missing", "are missing"))
+	}
+	if len(stale) > 0 {
+		sort.Strings(stale)
+		parts = append(parts, pluralizeDoctorInstructionFileList(stale, "is stale", "are stale"))
+	}
+
+	return []doctorCheck{{
+		Name:    "workspace_instruction_files",
+		Status:  doctorStatusWarn,
+		Message: strings.Join(parts, "; "),
+	}}
+}
+
+func normalizeDoctorWorkspaceInstructionContent(content string) string {
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+
+	lines := strings.Split(content, "\n")
+	filtered := make([]string, 0, len(lines))
+	skipBlankAfterPurpose := false
+
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Purpose: ") {
+			skipBlankAfterPurpose = true
+			continue
+		}
+
+		if skipBlankAfterPurpose {
+			if line == "" {
+				skipBlankAfterPurpose = false
+				continue
+			}
+			skipBlankAfterPurpose = false
+		}
+
+		filtered = append(filtered, line)
+	}
+
+	return strings.Join(filtered, "\n")
+}
+
+func pluralizeDoctorInstructionFileList(paths []string, singular, plural string) string {
+	if len(paths) == 1 {
+		return fmt.Sprintf("%s %s", paths[0], singular)
+	}
+
+	return fmt.Sprintf("%s %s", strings.Join(paths, ", "), plural)
 }
 
 func writeDoctorJSON(cmd *cobra.Command, report doctorReport) error {
