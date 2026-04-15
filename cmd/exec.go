@@ -49,6 +49,8 @@ func newExecCommand() *cobra.Command {
 		Use:   "exec -- <cmd>",
 		Short: "Run a command across linked repositories",
 		Args:  cobra.MinimumNArgs(1),
+		Example: `wsx exec -- git status
+wsx exec --parallel -- npm test`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := workspace.LoadConfig("")
 			if err != nil {

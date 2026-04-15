@@ -21,6 +21,9 @@ go test ./cmd
 go test ./internal/ai
 go test ./internal/workspace
 go test ./internal/git
+go run . favorite --help
+go run . agent-init --help
+go run . doctor --help
 ```
 
 Optional helper scripts:

@@ -29,6 +29,8 @@ func newGrepCommand() *cobra.Command {
 		Use:   "grep <pattern>",
 		Short: "Search for a pattern across linked repositories",
 		Args:  cobra.ExactArgs(1),
+		Example: `wsx grep handleAuth --include "*.go,*.ts"
+wsx grep refreshToken --json --context 1`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pattern := strings.TrimSpace(args[0])
 			if pattern == "" {

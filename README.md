@@ -182,7 +182,11 @@ wsx exec -- git status --short --branch
 | `wsx add <path> [--as <name>]` | Adds a linked repository to the workspace |
 | `wsx remove <name>` | Removes a linked repository from config and removes only the workspace link |
 | `wsx list [--json]` | Lists linked repos with stored path, resolved path, runtime link type, and health |
-| `wsx doctor [--json] [--fix]` | Validates workspace health and portability |
+| `wsx doctor [--json] [--fix]` | Validates workspace health and portability, including stale generated workspace instruction files |
+| `wsx favorite add <path> --name <NAME>` | Saves a reusable global path favorite |
+| `wsx favorite list [--json]` | Lists saved global path favorites |
+| `wsx favorite remove <NAME>` | Removes a saved global path favorite |
+| `wsx favorite import <NAME>...` | Imports saved favorites into the current workspace `.wsx.env` |
 
 ### Git and execution commands
 
@@ -208,13 +212,13 @@ wsx exec -- powershell -Command "git fetch; git status"
 | `wsx tree [--all] [--depth N]` | Shows a clean workspace tree |
 | `wsx grep <pattern> [--include glob,...] [--exclude glob,...] [--context N] [--json]` | Searches linked repositories in config order |
 | `wsx prompt [--copy]` | Generates an AI system prompt for the current workspace |
-| `wsx agent-init [--purpose text]` | Generates synchronized `CLAUDE.md` and `AGENTS.md` files in the wsx workspace, overwriting existing ones with a warning |
+| `wsx agent-init [--purpose text]` | Generates synchronized `CLAUDE.md` and `AGENTS.md` files that index linked-repo instruction file references, overwriting existing ones with a warning |
 
 ### Skill commands
 
 | Command | What It Does |
 |---------|--------------|
-| `wsx skill-install [--scope local\|global]` | Installs the bundled `SKILL.md`; global scope also links it into `~/.claude/skills` |
+| `wsx skill-install [--scope local\|global]` | Installs or refreshes the bundled `SKILL.md`; global scope also links it into `~/.claude/skills` |
 | `wsx skill-uninstall [--scope local\|global]` | Removes the installed `wsx` skill; global scope also removes the Claude mirror link |
 
 ---
@@ -234,6 +238,37 @@ wsx grep --json "TODO"
 
 ---
 
+## Favorites
+
+Use global favorites when you want to carry a path alias across workspaces
+without hard-coding it into a single repo.
+
+Save a favorite:
+
+```powershell
+wsx favorite add C:\Users\you\src --name WORK_REPOS
+wsx favorite add C:\Users\you\projects --name PERSONAL_REPOS
+```
+
+List favorites:
+
+```powershell
+wsx favorite list
+wsx favorite list --json
+```
+
+Import favorites into the current workspace `.wsx.env`:
+
+```powershell
+wsx favorite import WORK_REPOS
+wsx favorite import WORK_REPOS PERSONAL_REPOS
+```
+
+Imported favorites become normal workspace env entries, so later commands can
+use `${WORK_REPOS}` or `${PERSONAL_REPOS}` in the usual way.
+
+---
+
 ## Agent Usage
 
 This repo intentionally keeps a small set of root Markdown files:
@@ -242,11 +277,28 @@ This repo intentionally keeps a small set of root Markdown files:
 - `SKILL.md` for agent-native `wsx` guidance
 - `AGENTS.md` and `CLAUDE.md` for workspace-aware agent tooling conventions
 
+Generate workspace instruction files:
+
+```powershell
+wsx agent-init
+wsx agent-init --purpose "Debug payment incidents"
+```
+
+`agent-init` keeps the shared wsx workspace rules and tree, then adds a stable
+index of linked-repo instruction file references. It discovers recursive
+`AGENTS.md` and `CLAUDE.md` files plus `.github/copilot-instructions.md`.
+
+After `wsx add` or `wsx remove`, `wsx` warns if those generated workspace
+instruction files may now be stale. `wsx doctor` also reports missing or stale
+workspace instruction files as warnings.
+
 Install the bundled skill into the current repo scope:
 
 ```powershell
 wsx skill-install
 ```
+
+Running `skill-install` again refreshes the existing `wsx` skill in place.
 
 Install it globally for the current user:
 
@@ -308,7 +360,8 @@ go test ./internal/git
 ```
 
 Use `go run . --help` or `go run . <command> --help` to confirm the current CLI
-surface before updating docs.
+surface before updating docs. In particular, validate command examples with
+`go run . favorite --help`, `go run . agent-init --help`, and `go run . doctor --help`.
 
 ---
 

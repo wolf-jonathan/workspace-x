@@ -14,6 +14,8 @@ func newTreeCommand() *cobra.Command {
 		Use:   "tree",
 		Short: "Show a clean directory tree for the current workspace",
 		Args:  cobra.NoArgs,
+		Example: `wsx tree
+wsx tree --all --depth 1`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := workspace.LoadConfig("")
 			if err != nil {

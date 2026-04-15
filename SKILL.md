@@ -113,6 +113,8 @@ For automation:
 For setup:
 
 - Use `agent-init` when generating workspace instruction files
+- Use `favorite add`, `favorite list`, `favorite remove`, and `favorite import`
+  when managing reusable global path aliases
 - Use `skill-install` or `skill-uninstall` when managing the bundled `wsx`
   skill
 
@@ -189,6 +191,8 @@ Behavior:
 - In a TTY, `--fix` allows interactive resolution of missing variables
 - In non-interactive use, it reports errors and exits non-zero instead of
   prompting
+- It also warns when generated workspace `AGENTS.md` or `CLAUDE.md` files are
+  missing or stale relative to the current workspace state
 
 Agent guidance:
 
@@ -305,11 +309,60 @@ Expectations:
 
 - Overwrites either target file if it already exists at the workspace root
 - Emits a warning when existing files are replaced
-- Imports only top-level linked-repo `CLAUDE.md` and `AGENTS.md` files
+- Keeps `AGENTS.md` and `CLAUDE.md` identical in this phase
+- Indexes linked-repo instruction file references instead of importing file
+  contents
+- Discovers recursive linked-repo `CLAUDE.md` and `AGENTS.md` files plus exact
+  `.github/copilot-instructions.md`
+
+### `wsx favorite add <path> --name <NAME>`
+
+Saves a reusable global favorite path.
+
+Use it when:
+
+- You want a reusable path alias across multiple workspaces
+
+Expectation:
+
+- Stores the favorite in user-scoped global config, not inside the workspace
+
+### `wsx favorite list [--json]`
+
+Lists saved global favorites.
+
+Use it when:
+
+- You need to inspect which reusable path aliases are available
+
+Agent guidance:
+
+- Prefer `--json` when another tool will consume the result
+
+### `wsx favorite remove <NAME>`
+
+Removes one saved global favorite.
+
+Use it when:
+
+- Cleaning up or renaming a stale global path alias
+
+### `wsx favorite import <NAME>...`
+
+Imports one or more saved favorites into the current workspace `.wsx.env`.
+
+Use it when:
+
+- Bootstrapping a new workspace from reusable path aliases
+
+Expectation:
+
+- Imported favorites become normal workspace env entries available to later
+  wsx commands
 
 ### `wsx skill-install [--scope local|global]`
 
-Installs the bundled `wsx` `SKILL.md`.
+Installs or refreshes the bundled `wsx` `SKILL.md`.
 
 Use it when:
 
@@ -319,6 +372,7 @@ Guidance:
 
 - `local` is the default scope
 - Prefer local scope unless the user explicitly wants global installation
+- Re-running `skill-install` refreshes the existing `wsx` skill in place
 - `global` installs the canonical skill in `~/.agents/skills/wsx`
 - `global` also creates a Claude-visible link in `~/.claude/skills/wsx`
 - On Windows, the Claude link uses a symlink when available and falls back to a junction on permission errors
