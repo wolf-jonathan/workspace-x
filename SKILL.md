@@ -307,8 +307,8 @@ Expectations:
 - Keeps `AGENTS.md` and `CLAUDE.md` identical in this phase
 - Indexes linked-repo instruction file references instead of importing file
   contents
-- Discovers recursive linked-repo `CLAUDE.md` and `AGENTS.md` files plus exact
-  `.github/copilot-instructions.md`
+- Discovers linked-repo `CLAUDE.md` and `AGENTS.md` files in the repo root and
+  immediate child directories, plus exact `.github/copilot-instructions.md`
 
 ### `wsx favorite add <path> --name <NAME>`
 

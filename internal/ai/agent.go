@@ -183,8 +183,27 @@ func hasInstructionReferences(repos []WorkspaceInstructionRepo) bool {
 func findInstructionReferences(repoRoot string) ([]InstructionReference, error) {
 	references := make([]InstructionReference, 0, 3)
 
-	if err := collectInstructionReferences(repoRoot, repoRoot, &references); err != nil {
+	if err := collectInstructionReferencesInDirectory(repoRoot, repoRoot, &references); err != nil {
 		return nil, err
+	}
+
+	entries, err := os.ReadDir(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Name() == ".git" {
+			continue
+		}
+
+		if err := collectInstructionReferencesInDirectory(repoRoot, filepath.Join(repoRoot, entry.Name()), &references); err != nil {
+			return nil, err
+		}
 	}
 
 	sort.Slice(references, func(i, j int) bool {
@@ -194,7 +213,7 @@ func findInstructionReferences(repoRoot string) ([]InstructionReference, error) 
 	return references, nil
 }
 
-func collectInstructionReferences(repoRoot, currentDir string, references *[]InstructionReference) error {
+func collectInstructionReferencesInDirectory(repoRoot, currentDir string, references *[]InstructionReference) error {
 	entries, err := os.ReadDir(currentDir)
 	if err != nil {
 		return err
@@ -207,12 +226,6 @@ func collectInstructionReferences(repoRoot, currentDir string, references *[]Ins
 	for _, entry := range entries {
 		path := filepath.Join(currentDir, entry.Name())
 		if entry.IsDir() {
-			if entry.Name() == ".git" {
-				continue
-			}
-			if err := collectInstructionReferences(repoRoot, path, references); err != nil {
-				return err
-			}
 			continue
 		}
 

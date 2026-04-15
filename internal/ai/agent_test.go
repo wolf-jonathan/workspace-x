@@ -14,6 +14,7 @@ func TestGenerateWorkspaceInstructionsIncludesInstructionReferences(t *testing.T
 	writeAgentTestFile(t, filepath.Join(authRoot, "AGENTS.md"), "# Root Auth Agents\nUse the root policy.\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "AGENTS.md"), "# Docs Agents\nUse the auth repo policy.\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "nested", "CLAUDE.md"), "# Nested Claude\nKeep handlers thin.\n")
+	writeAgentTestFile(t, filepath.Join(authRoot, "services", "CLAUDE.md"), "# Services Claude\nPrefer service contracts.\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, ".github", "copilot-instructions.md"), "# Copilot Instructions\nPrefer small changes.\n")
 	writeAgentTestFile(t, filepath.Join(authRoot, "docs", "readme.md"), "ignored content\n")
 
@@ -38,7 +39,7 @@ func TestGenerateWorkspaceInstructionsIncludesInstructionReferences(t *testing.T
 		"AGENTS.md",
 		"CLAUDE.md",
 		"docs/AGENTS.md",
-		"docs/nested/CLAUDE.md",
+		"services/CLAUDE.md",
 	}
 	if got := referencePaths(authRepo.References); !slicesEqual(got, wantReferences) {
 		t.Fatalf("auth repo references = %v, want %v", got, wantReferences)
@@ -63,7 +64,7 @@ func TestGenerateWorkspaceInstructionsIncludesInstructionReferences(t *testing.T
 		"- `AGENTS.md`",
 		"- `CLAUDE.md`",
 		"- `docs/AGENTS.md`",
-		"- `docs/nested/CLAUDE.md`",
+		"- `services/CLAUDE.md`",
 		"### Repo: `frontend`",
 		"No repo-specific instruction files were found for this repo.",
 	} {
@@ -77,7 +78,9 @@ func TestGenerateWorkspaceInstructionsIncludesInstructionReferences(t *testing.T
 		"Use the root policy.",
 		"Use the auth repo policy.",
 		"Keep handlers thin.",
+		"Prefer service contracts.",
 		"Prefer small changes.",
+		"docs/nested/CLAUDE.md",
 		"#### Source:",
 	} {
 		if strings.Contains(content, forbidden) {

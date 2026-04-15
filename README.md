@@ -275,8 +275,9 @@ wsx agent-init --purpose "Debug payment incidents"
 ```
 
 `agent-init` keeps the shared wsx workspace rules and tree, then adds a stable
-index of linked-repo instruction file references. It discovers recursive
-`AGENTS.md` and `CLAUDE.md` files plus `.github/copilot-instructions.md`.
+index of linked-repo instruction file references. It discovers `AGENTS.md` and
+`CLAUDE.md` in the repo root and immediate child directories, plus
+`.github/copilot-instructions.md`.
 
 After `wsx add` or `wsx remove`, `wsx` warns if those generated workspace
 instruction files may now be stale. `wsx doctor` also reports missing or stale

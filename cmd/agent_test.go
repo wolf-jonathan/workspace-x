@@ -21,6 +21,7 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "AGENTS.md"), "# Auth Agents\nKeep handlers thin.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", ".github", "copilot-instructions.md"), "# Copilot\nPrefer small changes.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "docs", "AGENTS.md"), "# Docs Agents\nUse the docs policy.\n")
+	writeAgentCmdFile(t, filepath.Join(reposRoot, "auth-service", "docs", "nested", "CLAUDE.md"), "# Nested Claude\nAvoid broad rewrites.\n")
 	writeAgentCmdFile(t, filepath.Join(reposRoot, "frontend", "package.json"), "{\n  \"dependencies\": {\"next\": \"1.0.0\"}\n}\n")
 	writeAgentWorkspaceConfig(t, root, workspace.Config{
 		Version: "2",
@@ -80,6 +81,8 @@ func TestAgentInitWritesWorkspaceInstructionFiles(t *testing.T) {
 		"Keep handlers thin.",
 		"Prefer small changes.",
 		"Use the docs policy.",
+		"Avoid broad rewrites.",
+		"docs/nested/CLAUDE.md",
 		"#### Source:",
 	} {
 		if strings.Contains(generatedContent, forbidden) {
