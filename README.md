@@ -162,6 +162,111 @@ wsx exec -- git status --short --branch
 
 ---
 
+## Favorites
+
+Path aliases that follow you across every workspace on your machine. If you
+work with the same repos across multiple projects, typing the full absolute
+path every time is friction you don't need. Save a named favorite once in your
+global config and reference it by name when adding repos to any workspace. The
+alias is just a shortcut at the point of entry - the actual path still goes
+into `.wsx.json` as usual.
+
+Save a favorite:
+
+```powershell
+wsx favorite add C:\Users\you\src\auth-service --name AUTH_SERVICE
+wsx favorite add C:\Users\you\src\payments-api --name PAYMENTS_API
+wsx favorite add C:\Users\you\projects\frontend --name FRONTEND
+```
+
+List favorites:
+
+```powershell
+wsx favorite list
+wsx favorite list --json
+```
+
+Add a favorite to the current workspace without typing its path:
+
+```powershell
+wsx add --favorite AUTH_SERVICE
+wsx add --favorite PAYMENTS_API --as payments
+wsx add --favorite FRONTEND
+```
+
+`wsx add --favorite <NAME>` resolves the stored path immediately and writes the
+absolute path into `.wsx.json`. The alias lives in your global config and is
+never part of any workspace - just a local shortcut for paths you use often.
+
+---
+
+## Agent Init
+
+One command that gives every AI session an accurate map of your workspace.
+Without it, AI tools discover context from scratch on every session - reading
+file trees, guessing repo boundaries, missing the guidance buried in each
+repo's `CLAUDE.md` or `AGENTS.md`. `wsx agent-init` solves this by generating
+a single workspace-level instruction file that indexes every linked repo's
+instruction files and presents them as a coherent whole. The AI starts
+informed instead of lost, and you stop re-explaining your project layout.
+
+```powershell
+wsx agent-init
+wsx agent-init --purpose "Debug payment incidents"
+```
+
+`agent-init` keeps the shared wsx workspace rules and tree, then adds a stable
+index of linked-repo instruction file references. It discovers `AGENTS.md` and
+`CLAUDE.md` in the repo root and immediate child directories, plus
+`.github/copilot-instructions.md`. The generated index renders those references
+as workspace-relative paths, so each path starts with the linked repo
+directory name.
+
+After `wsx add` or `wsx remove`, `wsx` warns if the generated workspace
+instruction files may now be stale. `wsx doctor` also reports missing or stale
+workspace instruction files as warnings.
+
+---
+
+## Skill Install
+
+Teach your AI assistant what `wsx` is - once. Without the skill, every new
+session requires you to explain the workspace layout, available commands, and
+expected conventions before you can get useful help. With `skill-install`, the
+bundled `wsx` guidance is loaded into Claude Code (or any compatible AI tool)
+automatically at session start. It already knows the commands, the workspace
+model, and how to navigate a multi-repo setup. You open a workspace and the AI
+is ready.
+
+Install into the current workspace:
+
+```powershell
+wsx skill-install
+```
+
+Running `skill-install` again refreshes the skill in place - safe to re-run
+after upgrades.
+
+Install globally for all workspaces on this machine:
+
+```powershell
+wsx skill-install --scope global
+```
+
+Global scope installs the canonical skill under `~/.agents/skills/wsx` and
+also creates a Claude-visible link at `~/.claude/skills/wsx`. On Windows, that
+link uses a symlink when available and falls back to a junction on permission
+errors.
+
+Remove an installed skill:
+
+```powershell
+wsx skill-uninstall
+wsx skill-uninstall --scope global
+```
+
+---
+
 ## Command Reference
 
 ### Workspace commands
@@ -224,91 +329,6 @@ wsx status --json --parallel
 wsx fetch --json --parallel
 wsx exec --json -- go test ./...
 wsx grep --json "TODO"
-```
-
----
-
-## Favorites
-
-Use global favorites when you want to carry a path alias across workspaces
-without hard-coding it into a single repo.
-
-Save a favorite:
-
-```powershell
-wsx favorite add C:\Users\you\src --name WORK_REPOS
-wsx favorite add C:\Users\you\projects --name PERSONAL_REPOS
-wsx favorite add C:\Users\you\src\auth-service --name AUTH_SERVICE
-```
-
-List favorites:
-
-```powershell
-wsx favorite list
-wsx favorite list --json
-```
-
-Add a favorite directly to the workspace:
-
-```powershell
-wsx add --favorite AUTH_SERVICE
-```
-
-`wsx add --favorite <NAME>` resolves the favorite immediately and stores the
-absolute path in `.wsx.json`.
-
----
-
-## Agent Usage
-
-This repo intentionally keeps a small set of root Markdown files:
-
-- `README.md` for public product and usage documentation
-- `SKILL.md` for agent-native `wsx` guidance
-- `AGENTS.md` and `CLAUDE.md` for workspace-aware agent tooling conventions
-
-Generate workspace instruction files:
-
-```powershell
-wsx agent-init
-wsx agent-init --purpose "Debug payment incidents"
-```
-
-`agent-init` keeps the shared wsx workspace rules and tree, then adds a stable
-index of linked-repo instruction file references. It discovers `AGENTS.md` and
-`CLAUDE.md` in the repo root and immediate child directories, plus
-`.github/copilot-instructions.md`. The generated index renders those references
-as workspace-relative paths, so each path starts with the linked repo
-directory name.
-
-After `wsx add` or `wsx remove`, `wsx` warns if those generated workspace
-instruction files may now be stale. `wsx doctor` also reports missing or stale
-workspace instruction files as warnings.
-
-Install the bundled skill into the current repo scope:
-
-```powershell
-wsx skill-install
-```
-
-Running `skill-install` again refreshes the existing `wsx` skill in place.
-
-Install it globally for the current user:
-
-```powershell
-wsx skill-install --scope global
-```
-
-Global scope installs the canonical skill under `~/.agents/skills/wsx` and also
-creates a Claude-visible link at `~/.claude/skills/wsx`. On Windows, that link
-uses a symlink when available and falls back to a junction on permission
-errors.
-
-Remove an installed skill:
-
-```powershell
-wsx skill-uninstall
-wsx skill-uninstall --scope global
 ```
 
 ---
